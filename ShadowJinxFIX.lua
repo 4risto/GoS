@@ -33,12 +33,12 @@ do
         Lua = {
             Path = SCRIPT_PATH,
             Name = "Jinx.lua",
-            Url = "https://raw.githubusercontent.com/ShadowFusion/MJGA/master/Jinx.lua"
+            Url = "https://raw.githubusercontent.com/4risto/Gamingonsteroids-LUAs/master/ShadowJinxFIX.lua"
         },
         Version = {
             Path = SCRIPT_PATH,
             Name = "Jinx.version",
-            Url = "https://raw.githubusercontent.com/ShadowFusion/MJGA/master/Jinx.version"    -- check if Raw Adress correct pls.. after you have create the version file on Github
+            Url = "https://raw.githubusercontent.com/4risto/Gamingonsteroids-LUAs/master/ShadowJinxFIX.version"    -- check if Raw Adress correct pls.. after you have create the version file on Github
         }
     }
     
