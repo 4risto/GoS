@@ -92,7 +92,7 @@ Callback.Add("Load", function()
         return
     end
     if FileExist(COMMON_PATH .. "DamageLib.lua") then
-        print("HELAAAAAL YIGEEEEEEEN ARISTO FIX EDITIONU INDIRDIN YIGEEENIIMM")
+        print("SENI COK SEVIYORUM")
 
     end
         
