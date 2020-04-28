@@ -4768,7 +4768,18 @@ function Orbwalker:MeleeLogic()
     direction = (hepos - mePos):Normalized()
     position = hepos + direction * 200
     
-  end
+    local i = 0
+    while (Cursor:IsCursorOnTarget(position)) do
+        i = i + 50
+        position = hepos + direction * i
+        if i > 5000 then
+            print('vayne anti melee error')
+            break
+        end
+    end
+    
+    return process, position
+end
 
 function Orbwalker:OnUnkillableMinion(cb)
     table_insert(Health.OnUnkillableMinionCallbacks, cb);
