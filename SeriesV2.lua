@@ -15,12 +15,12 @@ do
         Lua = {
             Path = SCRIPT_PATH,
             Name = "SeriesV2.lua",
-            Url = "https://raw.githubusercontent.com/4risto/GoS/master/SeriesV2.lua"
+            Url = "https://raw.githubusercontent.com/Impulsx/Series/master/SeriesV2.lua"
         },
         Version = {
             Path = SCRIPT_PATH,
             Name = "SeriesV2.version",
-            Url = "https://raw.githubusercontent.com/4risto/GoS/master/SeriesV2version"    -- check if Raw Adress correct pls.. after you have create the version file on Github
+            Url = "https://raw.githubusercontent.com/Impulsx/Series/master/SeriesV2.version"    -- check if Raw Adress correct pls.. after you have create the version file on Github
         }
     }
     
@@ -660,7 +660,7 @@ end
 function Cassiopeia:GetBuffPosion(unit)
     for i = 0, unit.buffCount do
         local buff = unit:GetBuff(i)
-        if buff.type == 23 and Game.Timer() < buff.expireTime - 0.1 then 
+        if buff.type == 24 and Game.Timer() < buff.expireTime - 0.1 then 
             return true
         end
     end
