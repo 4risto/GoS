@@ -146,7 +146,7 @@ function IsImmobile(unit)
         local buff = unit:GetBuff(i)
         if buff and buff.count > 0 then
             local BuffType = buff.type
-            if BuffType == 5 or BuffType == 12 or BuffType == 22 or BuffType == 23 or BuffType == 25 or BuffType == 30 or buff.name == "recall" then
+            if BuffType == 5 or BuffType == 11 or BuffType == 21 or BuffType == 22 or BuffType == 24 or BuffType == 29 or buff.name == "recall" then
                 local BuffDuration = buff.duration
                 if BuffDuration > MaxDuration then
                     MaxDuration = BuffDuration
@@ -163,7 +163,7 @@ function IsCleanse(unit)
         local buff = unit:GetBuff(i)
         if buff and buff.count > 0 then
             local BuffType = buff.type
-            if BuffType == 5 or BuffType == 8 or BuffType == 9 or BuffType == 12 or BuffType == 22 or BuffType == 23 or BuffType == 25 or BuffType == 31 then
+            if BuffType == 5 or BuffType == 8 or BuffType == 9 or BuffType == 11 or BuffType == 21 or BuffType == 22 or BuffType == 24 or BuffType == 31 then
                 local BuffDuration = buff.duration
                 if BuffDuration > MaxDuration then
                     MaxDuration = BuffDuration
@@ -180,7 +180,7 @@ function IsChainable(unit)
         local buff = unit:GetBuff(i)
         if buff and buff.count > 0 then
             local BuffType = buff.type
-            if BuffType == 5 or BuffType == 8 or BuffType == 9 or BuffType == 12 or BuffType == 22 or BuffType == 23 or BuffType == 25 or BuffType == 32 or BuffType == 10 then
+            if BuffType == 5 or BuffType == 8 or BuffType == 9 or BuffType == 11 or BuffType == 21 or BuffType == 22 or BuffType == 24 or BuffType == 31 or BuffType == 10 then
                 local BuffDuration = buff.duration
                 if BuffDuration > MaxDuration then
                     MaxDuration = BuffDuration
@@ -1067,7 +1067,7 @@ local EnemyLoaded = false
 local AllyLoaded = false
 
 -- lux icons
-local HeroIcon = "https://static.u.gg/assets/lol/riot_static/11.10.1/img/champion/Lux.png"
+local HeroIcon = "https://static.wikia.nocookie.net/leagueoflegends/images/b/bf/Lux_OriginalSquare.png"
 local QIcon = "https://www.proguides.com/public/media/rlocal/champion/ability/thumbnail/LuxLightBinding.png"
 local WIcon = "https://www.proguides.com/public/media/rlocal/champion/ability/thumbnail/LuxPrismaticWave.png"
 local EIcon = "https://www.proguides.com/public/media/rlocal/champion/ability/thumbnail/LuxLightStrikeKugel.png"
@@ -1648,11 +1648,11 @@ local ActiveQRange = 0
 local lastSpell = GetTickCount()
 local lastQ = Game.Timer()
 
-local Icon = "https://static.u.gg/assets/lol/riot_static/11.10.1/img/champion/Xerath.png"
-local QIcon = "https://static.u.gg/assets/lol/riot_static/11.10.1/img/spell/XerathArcanopulseChargeUp.png"
-local WIcon = "https://static.u.gg/assets/lol/riot_static/11.10.1/img/spell/XerathArcaneBarrage2.png"
-local EIcon = "https://static.u.gg/assets/lol/riot_static/11.10.1/img/spell/XerathMageSpear.png"
-local RIcon = "https://static.u.gg/assets/lol/riot_static/11.10.1/img/spell/XerathLocusOfPower2.png"
+local Icon = "https://static.wikia.nocookie.net/leagueoflegends/images/c/cf/Xerath_OriginalSquare.png"
+local QIcon = "https://static.wikia.nocookie.net/leagueoflegends/images/b/bf/Xerath_Arcanopulse.png"
+local WIcon = "https://static.wikia.nocookie.net/leagueoflegends/images/c/c3/Xerath_Eye_of_Destruction.png"
+local EIcon = "https://static.wikia.nocookie.net/leagueoflegends/images/c/c5/Xerath_Shocking_Orb.png"
+local RIcon = "https://static.wikia.nocookie.net/leagueoflegends/images/2/29/Xerath_Rite_of_the_Arcane.png"
 
 
 function Xerath:Menu()
