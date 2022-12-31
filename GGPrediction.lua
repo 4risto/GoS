@@ -6,9 +6,9 @@ Callback.Add("Load", function()
 		version = Version,
 		scriptName = Name,
 		scriptPath = COMMON_PATH .. Name .. ".lua",
-		scriptUrl = "https://raw.githubusercontent.com/gamsteron/GG/master/" .. Name .. ".lua",
+		scriptUrl = "https://raw.githubusercontent.com/4risto/GoS/master/" .. Name .. ".lua",
 		versionPath = COMMON_PATH .. Name .. ".version",
-		versionUrl = "https://raw.githubusercontent.com/gamsteron/GG/master/" .. Name .. ".version",
+		versionUrl = "https://raw.githubusercontent.com/4risto/GoS/master/" .. Name .. ".version",
 	})
 end)
 
