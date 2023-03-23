@@ -1,4 +1,4 @@
-local __version__ = 3.003
+local __version__ = 3.004
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -627,7 +627,7 @@ FlashHelper = {
 
 _G.Control.Flash = function()
 	if Cursor.Step == 0 then
-		Cursor:Add(FlashHelper.Menu.Flashlol:Key(), myHero.pos:Extended(Vector(mousePos), 600))
+		Cursor:Add(FlashHelper.Menu.Flashlol:Key(), mousePos)
 		return
 	end
 	FlashHelper.Flash = FlashHelper.Menu.Flashlol:Key()
@@ -1308,7 +1308,7 @@ Damage = {
 			end
 		end,
 		["Jhin"] = function(args)
-			if Buff:HasBuff(args.From, "jhinpassiveattackbuff") then
+			if myHero.hudAmmo==1 then
 				args.CriticalStrike = true
 				args.RawPhysical = args.RawPhysical
 					+ math_min(0.25, 0.1 + 0.05 * math_ceil(args.From.levelData.lvl / 5))
@@ -1471,6 +1471,11 @@ Damage = {
 			DamageType = DAMAGE_TYPE_PHYSICAL,
 			TargetIsMinion = targetIsMinion,
 		}
+		if from.charName=="Jhin" then
+			local levelAD = { 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1, 1.11, 1.12, 1.14, 1.16, 1.2, 1.24, 1.28, 1.32, 1.36, 1.40, 1.44}
+			local JhinAD= ((((59+4.7*(myHero.levelData.lvl-1)*(0.7025+(0.0175*(myHero.levelData.lvl-1)))))*(levelAD[math.max(math.min(myHero.levelData.lvl, 18), 1)]+myHero.critChance*0.3+0.25*(myHero.attackSpeed-1)))+myHero.bonusDamage)
+			args.RawTotal=JhinAD
+		end
 		self:SetHeroStaticDamage(args)
 		local HashSet = {}
 		for i = 1, #ItemSlots do
@@ -1568,15 +1573,20 @@ Damage = {
 				end
 			end
 		end
+		if from.charName=="Jhin" then
+			local levelAD = { 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1, 1.11, 1.12, 1.14, 1.16, 1.2, 1.24, 1.28, 1.32, 1.36, 1.40, 1.44}
+			local JhinAD= ((((59+4.7*(myHero.levelData.lvl-1)*(0.7025+(0.0175*(myHero.levelData.lvl-1)))))*(levelAD[math.max(math.min(myHero.levelData.lvl, 18), 1)]+myHero.critChance*0.3+0.25*(myHero.attackSpeed-1)))+myHero.bonusDamage)
+			return self:CalculateDamage(from, target, DAMAGE_TYPE_PHYSICAL, JhinAD, false, true)
+		end
 		return self:CalculateDamage(from, target, DAMAGE_TYPE_PHYSICAL, from.totalDamage, false, true)
 	end,
 
 	GetCriticalStrikePercent = function(self, from)
-		local baseCriticalDamage = 2
+		local baseCriticalDamage = 1.75
 		local percentMod = 1
 		local fixedMod = 0
 		if from.charName == "Jhin" then
-			percentMod = 0.75
+			percentMod = 0.86
 		elseif from.charName == "XinZhao" then
 			baseCriticalDamage = baseCriticalDamage - (0.875 - 0.125 * from:GetSpellData(_W).level)
 		elseif from.charName == "Yasuo" then
@@ -1727,9 +1737,6 @@ Data = {
 			return false
 		end,
 		["Jhin"] = function()
-			if Buff:HasBuff(myHero, "JhinPassiveReload") then
-				return true
-			end
 			if myHero.hudAmmo == 0 then
 				return true
 			end
@@ -1753,6 +1760,9 @@ Data = {
 		["Graves"] = function()
 			return 3800
 		end,
+		["Seraphine"] = function()
+			return 1800
+		end,
 		["Illaoi"] = function()
 			if Buff:HasBuff(myHero, "IllaoiW") then
 				return 1600
@@ -1765,8 +1775,14 @@ Data = {
 			end
 			return nil
 		end,
+        ["Viktor"] = function()
+            if Buff:HasBuff(myHero, "ViktorPowerTransferReturn") then
+                return 5000
+            end
+            return nil
+        end,
 		["Jhin"] = function()
-			if Buff:HasBuff(myHero, "jhinpassiveattackbuff") then
+			if myHero.hudAmmo==1 then
 				return 3000
 			end
 			return nil
@@ -1797,7 +1813,7 @@ Data = {
 		end,
 	},
 
-	--13.6
+	--12.21.1
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
 		Ahri = { 4, false, 0.668 },
@@ -2060,6 +2076,7 @@ Data = {
 		["Kayle"] = { Slot = _E, Key = HK_E },
 		["Katarina"] = { Slot = _E, Key = HK_E, CanCancel = true, OnCast = true },
 		["Kindred"] = { Slot = _Q, Key = HK_Q },
+		["KSante"] = { Slot = _E, Key = HK_E, CanCancel = true, OnCast = true },
 		["Leona"] = { Slot = _Q, Key = HK_Q },
 		["Lucian"] = { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true }, -- Buff = {["lucianpassivebuff"] = true},
 		["MasterYi"] = { Slot = _W, Key = HK_W },
@@ -2794,7 +2811,9 @@ SummonerSpell = {
 			local buff = buffs[i]
 			if buff.duration >= menuDuration and menuBuffs[buff.type] then
 				casted = true
-				Control.CastSpell(hk)
+				DelayAction(function()
+					Control.CastSpell(hk)
+				end,0.176)
 				self.CleanseStartTime = GetTickCount()
 				break
 			end
@@ -2899,7 +2918,9 @@ Item = {
 			local buff = buffs[i]
 			if buff.duration >= menuDuration and menuBuffs[buff.type] then
 				casted = true
-				Control.CastSpell(self.Hotkey)
+				DelayAction(function()
+					Control.CastSpell(self.Hotkey)
+				end,0.176)
 				self.CleanseStartTime = GetTickCount()
 				break
 			end
@@ -3495,8 +3516,8 @@ end
 Target.SortModes = {
 
 	[SORT_AUTO] = function(a, b)
-		local aMultiplier = 1.75 - Target:GetPriority(a) * 0.15
-		local bMultiplier = 1.75 - Target:GetPriority(b) * 0.15
+		local aMultiplier = 1.75 - (Target:GetPriority(a) * 0.15) +(0.5*math.min((math.max(a.distance,400)/math.max(b.distance,400)),2))
+		local bMultiplier = 1.75 - (Target:GetPriority(b) * 0.15) +(0.5*math.min((math.max(b.distance,400)/math.max(a.distance,400)),2))
 		local aDef, bDef = 0, 0
 		if Target.CurrentDamage == DAMAGE_TYPE_MAGICAL then
 			local magicPen, magicPenPercent = myHero.magicPen, myHero.magicPenPercent
@@ -4283,7 +4304,7 @@ Cursor = {
 
 	StepReady = function(self)
 		if FlashHelper.Flash then
-			self:Add(FlashHelper.Flash, myHero.pos:Extended(Vector(mousePos), 600))
+			self:Add(FlashHelper.Flash,  mousePos)
 			FlashHelper.Flash = nil
 		elseif EvadeSupport then
 			self:Add(MOUSEEVENTF_RIGHTDOWN, EvadeSupport)
