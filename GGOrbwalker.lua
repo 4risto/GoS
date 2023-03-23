@@ -1,4 +1,4 @@
-local __version__ = 3.002
+local __version__ = 3.003
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -123,9 +123,9 @@ if
 		version = __version__,
 		scriptName = __name__,
 		scriptPath = SCRIPT_PATH .. __name__ .. ".lua",
-		scriptUrl = "https://raw.githubusercontent.com/4risto/GoS/master/" .. __name__ .. ".lua",
+		scriptUrl = "https://raw.githubusercontent.com/gamsteron/GG/master/" .. __name__ .. ".lua",
 		versionPath = SCRIPT_PATH .. __name__ .. ".version",
-		versionUrl = "https://raw.githubusercontent.com/4risto/GoS/master/" .. __name__ .. ".version",
+		versionUrl = "https://raw.githubusercontent.com/gamsteron/GG/master/" .. __name__ .. ".version",
 	}):CanUpdate()
 then
 	return
@@ -1797,7 +1797,7 @@ Data = {
 		end,
 	},
 
-	--12.21.1
+	--13.6
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
 		Ahri = { 4, false, 0.668 },
@@ -1876,6 +1876,7 @@ Data = {
 		Malzahar = { 3, false, 0.625 },
 		Maokai = { 2, true, 0.8 },
 		MasterYi = { 5, true, 0.679 },
+		Milio = { 3, false, 0.625 },
 		MissFortune = { 5, false, 0.656 },
 		MonkeyKing = { 3, true, 0.69 },
 		Mordekaiser = { 4, true, 0.625 },
