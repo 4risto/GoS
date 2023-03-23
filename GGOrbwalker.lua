@@ -123,9 +123,9 @@ if
 		version = __version__,
 		scriptName = __name__,
 		scriptPath = SCRIPT_PATH .. __name__ .. ".lua",
-		scriptUrl = "https://raw.githubusercontent.com/gamsteron/GG/master/" .. __name__ .. ".lua",
+		scriptUrl = "https://raw.githubusercontent.com/4risto/GoS/master/" .. __name__ .. ".lua",
 		versionPath = SCRIPT_PATH .. __name__ .. ".version",
-		versionUrl = "https://raw.githubusercontent.com/gamsteron/GG/master/" .. __name__ .. ".version",
+		versionUrl = "https://raw.githubusercontent.com/4risto/GoS/master/" .. __name__ .. ".version",
 	}):CanUpdate()
 then
 	return
