@@ -1,4 +1,4 @@
-local __version__ = 3.004
+local __version__ = 3.002
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -278,9 +278,11 @@ end
 
 local function CastKey(key)
 	if key == MOUSEEVENTF_RIGHTDOWN then
+		Control.KeyDown(HK_TCO)
 		Control.mouse_event(MOUSEEVENTF_RIGHTDOWN)
 		Control.mouse_event(MOUSEEVENTF_RIGHTUP)
 	else
+	Control.KeyDown(HK_TCO)
 		Control.KeyDown(key)
 		Control.KeyUp(key)
 	end
@@ -636,12 +638,16 @@ end
 Cached = {
 
 	Minions = {},
+	ExtraHeroes = {},
+	ExtraUnits = {},
 	Turrets = {},
 	Wards = {},
 	Heroes = {},
 	Buffs = {},
 	HeroesSaved = false,
 	MinionsSaved = false,
+	ExtraHeroesSaved = false,
+	ExtraUnitsSaved = false,
 	TurretsSaved = false,
 	WardsSaved = false,
 
@@ -660,6 +666,26 @@ Cached = {
 				self.Minions[i] = nil
 			end
 			self.MinionsSaved = false
+		end
+		if self.ExtraHeroesSaved then
+			for i = #self.ExtraHeroes, 1, -1 do
+				local u = self.ExtraHeroes[i]
+				if u and u.valid and u.visible and u.isTargetable and not u.dead and not u.isImmortal then
+				else
+					self.ExtraHeroes[i] = nil
+				end
+			end
+			self.ExtraHeroesSaved = false
+		end
+		if self.ExtraUnitsSaved then
+			for i = #self.ExtraUnits, 1, -1 do
+				local u = self.ExtraUnits[i]
+				if u and u.valid and u.visible and u.isTargetable and not u.dead and not u.isImmortal then
+				else
+					self.ExtraUnits[i] = nil
+				end
+			end
+			self.ExtraUnitsSaved = false
 		end
 		if self.TurretsSaved then
 			for i = #self.Turrets, 1, -1 do
@@ -701,6 +727,7 @@ Cached = {
 	GetHeroes = function(self)
 		if not self.HeroesSaved then
 			self.HeroesSaved = true
+			self.ExtraHeroesSaved = true
 			local count = GameHeroCount()
 			if count and count > 0 and count < 1000 then
 				for i = 1, count do
@@ -710,13 +737,39 @@ Cached = {
 					end
 				end
 			end
+
+			for i = 1, #self.ExtraHeroes do
+				local e = self.ExtraHeroes[i]
+				table_insert(self.Heroes, e)
+			end
 		end
 		return self.Heroes
+	end,
+
+	AddCachedHero = function(self, unit)
+		for _, u in pairs(self.ExtraHeroes) do
+			if(u.networkID == unit.networkID) then
+				return false
+			end
+		end
+
+		table_insert(self.ExtraHeroes, unit)
+	end,
+
+	AddCachedMinion = function(self, unit)
+		for _, u in pairs(self.ExtraUnits) do
+			if(u.networkID == unit.networkID) then
+				return false
+			end
+		end
+
+		table_insert(self.ExtraUnits, unit)
 	end,
 
 	GetMinions = function(self)
 		if not self.MinionsSaved then
 			self.MinionsSaved = true
+			self.ExtraUnitsSaved = true
 			local count = GameMinionCount()
 			if count and count > 0 and count < 1000 then
 				for i = 1, count do
@@ -725,6 +778,11 @@ Cached = {
 						table_insert(self.Minions, o)
 					end
 				end
+			end
+
+			for i = 1, #self.ExtraUnits do
+				local e = self.ExtraUnits[i]
+				table_insert(self.Minions, e)
 			end
 		end
 		return self.Minions
@@ -825,6 +883,8 @@ Menu = {
         self.Target:MenuElement({id = 'SelectedTarget', name = 'Selected Target', value = true})
         self.Target:MenuElement({id = 'OnlySelectedTarget', name = 'Only Selected Target', value = false})
         self.Target:MenuElement({id = 'SortMode' .. myHero.charName, name = 'Sort Mode', value = 1, drop = {'Auto', 'Closest', 'Near Mouse', 'Lowest HP', 'Lowest MaxHP', 'Highest Priority', 'Most Stack', 'Most AD', 'Most AP', 'Less Cast', 'Less Attack'}})
+		self.Target:MenuElement({id = 'mindistance', name = 'mindistance', value = 400, min = 100, max = 600, step=25 })
+		self.Target:MenuElement({id = 'distmultiplier', name = 'distance multiplier', value = 0.5, min = 0, max = 1, step=0.01 })
     end,
 
     CreateOrbwalker = function(self)
@@ -1560,6 +1620,13 @@ Damage = {
 		end
 		local targetIsMinion = target.type == Obj_AI_Minion
 		if respectPassives and from.type == Obj_AI_Hero then
+			if from.charName=="Graves" then
+				if target.distance<target.boundingRadius/0.212 then
+					return self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion))*2
+				end		
+				return self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion))*1.33
+			end
+
 			return self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion))
 		end
 		if targetIsMinion then
@@ -1689,6 +1756,12 @@ Data = {
 			end
 			return nil
 		end,
+		["Aphelios"] = function()
+			if Buff:HasBuff(myHero, "ApheliosCrescendumManager") then
+				return 0.1067
+			end
+			return nil
+		end,
 	},
 
 	AllowMovement = {
@@ -1747,6 +1820,12 @@ Data = {
 	SpecialMissileSpeeds = {
 		["Aphelios"] = function()
 			if Buff:HasBuff(myHero, "ApheliosCrescendumManager") then
+				return 3500
+			elseif Buff:HasBuff(myHero, "ApheliosCalibrumManager") then
+				return 3000
+			elseif Buff:HasBuff(myHero, "ApheliosInfernumManager") then
+				return 1700		
+			elseif Buff:HasBuff(myHero, "ApheliosSeverumManager") then
 				return math.huge
 			end
 			return 1500
@@ -2331,7 +2410,7 @@ Data = {
 				return false
 			end
 		end
-		if Buff:HasBuffTypes(myHero, { [25] = true, [31] = true }) then
+		if Buff:HasBuffTypes(myHero, { [26] = true, [32] = true }) then
 			return false
 		end
 		return true
@@ -2971,6 +3050,7 @@ Object = {
 	CachedTurrets = {},
 	CachedWards = {},
 	IsAzir = myHero.charName == "Azir",
+	IsAphelios = myHero.charName == "Aphelios",
 	IsKalista = myHero.charName == "Kalista",
 	IsCaitlyn = myHero.charName == "Caitlyn",
 	IsRiven = myHero.charName == "Riven",
@@ -3030,7 +3110,7 @@ Object = {
 	IsHeroImmortal = function(self, unit, isAttack)
 		local hp
 		hp = 100 * (unit.health / unit.maxHealth)
-		self.UndyingBuffs["kindredrnodeathbuff"] = hp < 10
+		self.UndyingBuffs["kindredrnodeathbuff"] = hp <= 10.1
 		self.UndyingBuffs["ChronoShift"] = hp < 15
 		self.UndyingBuffs["chronorevive"] = hp < 15
 		self.UndyingBuffs["UndyingRage"] = hp < 15
@@ -3038,7 +3118,16 @@ Object = {
 		self.UndyingBuffs["ShenWBuff"] = isAttack
 		for buffName, isActive in pairs(self.UndyingBuffs) do
 			if isActive and Buff:HasBuff(unit, buffName) then
+				local bufff=Buff:GetBuff(unit, buffName)
+				if isAttack then
+					if bufff.duration>= myHero.attackData.windUpTime + (unit.distance/Attack:GetProjectileSpeed())+Data:GetLatency()-0.01 then
+				--	print(bufff.duration)
 				return true
+			end
+					
+				else
+					return true
+				end
 			end
 		end
 		-- anivia passive, olaf R, ... if unit.isImmortal and not Buff:HasBuff(unit, 'willrevive') and not Buff:HasBuff(unit, 'zacrebirthready') then return true end
@@ -3063,7 +3152,7 @@ Object = {
 		local cachedHeroes = Cached:GetHeroes()
 		for i = 1, #cachedHeroes do
 			local hero = cachedHeroes[i]
-			if hero.isEnemy and self:IsValid(hero) and (not immortal or not self:IsHeroImmortal(hero, isAttack)) then
+			if hero.isEnemy and self:IsValid(hero) and ((not immortal or not self:IsHeroImmortal(hero, isAttack)) or (Object.IsKindred and Orbwalker:KindredETarget(hero))) then
 				if not range or hero.distance < range + (bbox and hero.boundingRadius or 0) then
 					table_insert(result, hero)
 				end
@@ -3276,7 +3365,7 @@ Object = {
 
 Object:OnEnemyHeroLoad(function(args)
 	if args.charName == "Kayle" then
-		Object.UndyingBuffs["JudicatorIntervention"] = true
+		Object.UndyingBuffs["KayleR"] = true
 		return
 	end
 	if args.charName == "Taric" then
@@ -3387,7 +3476,7 @@ Target = {
 		if
 			self.MenuDrawSelected:Value()
 			and Object:IsValid(self.Selected)
-			and not Object:IsHeroImmortal(self.Selected)
+		--	and not Object:IsHeroImmortal(self.Selected)
 		then
 			Draw.Circle(self.Selected.pos, 150, 1, Color.DarkRed)
 		end
@@ -3409,7 +3498,7 @@ Target = {
 			self.MenuCheckSelected:Value()
 			and Object:IsValid(self.Selected)
 			and ChampionInfo:CustomIsTargetable(self.Selected)
-			and not Object:IsHeroImmortal(self.Selected, isAttack)
+			and (Object:IsHeroImmortal(self.Selected, isAttack)==false or (Object.IsKindred and Orbwalker:KindredETarget(self.Selected))) 
 		then
 			if type(a) == "number" then
 				if self.Selected.distance < a then
@@ -3516,8 +3605,10 @@ end
 Target.SortModes = {
 
 	[SORT_AUTO] = function(a, b)
-		local aMultiplier = 1.75 - (Target:GetPriority(a) * 0.15) +(0.5*math.min((math.max(a.distance,400)/math.max(b.distance,400)),2))
-		local bMultiplier = 1.75 - (Target:GetPriority(b) * 0.15) +(0.5*math.min((math.max(b.distance,400)/math.max(a.distance,400)),2))
+		mindist= Menu.Target.mindistance:Value()
+		distmultiplier=Menu.Target.distmultiplier:Value()
+		local aMultiplier = 1.75 - (Target:GetPriority(a) * 0.15) +(distmultiplier*math.min((math.max(a.distance,mindist)/math.max(b.distance,mindist)),2))
+		local bMultiplier = 1.75 - (Target:GetPriority(b) * 0.15) +(distmultiplier*math.min((math.max(b.distance,mindist)/math.max(a.distance,mindist)),2))
 		local aDef, bDef = 0, 0
 		if Target.CurrentDamage == DAMAGE_TYPE_MAGICAL then
 			local magicPen, magicPenPercent = myHero.magicPen, myHero.magicPenPercent
@@ -4316,6 +4407,12 @@ Cursor = {
 		local pos
 		if self.IsTarget then
 			pos = self.CastPos.pos:To2D()
+			if self.CastPos.charName == "GangplankBarrel" then
+				pos.y=pos.y-((60/1440)*Game.Resolution().y)
+			end
+            if  self.CastPos.charName:lower():find("chaosminion") or  self.CastPos.charName:lower():find("orderminion") then
+				pos.y=pos.y-((25/1440)*Game.Resolution().y)
+            end
 		else
 			pos = (self.CastPos.z ~= nil) and Vector(self.CastPos.x, self.CastPos.y or 0, self.CastPos.z):To2D()
 				or Vector({ x = self.CastPos.x, y = self.CastPos.y })
@@ -4324,6 +4421,14 @@ Cursor = {
 	end,
 
 	StepPressKey = function(self)
+		if self.CastPos.type and self.CastPos.type ~= "AIHeroClient" then
+			Control.KeyUp(HK_TCO)
+		elseif self.CastPos.type and self.CastPos.type == "AIHeroClient" then
+			Control.KeyDown(HK_TCO)
+		else
+	--	Control.KeyDown(HK_TCO)
+		end
+		
 		if self.IsMouseClick then
 			Control.mouse_event(MOUSEEVENTF_RIGHTDOWN)
 			Control.mouse_event(MOUSEEVENTF_RIGHTUP)
@@ -4383,6 +4488,7 @@ Attack = {
 	IsGraves = myHero.charName == "Graves",
 	SpecialWindup = Data.SpecialWindup[myHero.charName],
 	IsJhin = myHero.charName == "Jhin",
+	IsAphelios = myHero.charName == "Aphelios",
 	BaseAttackSpeed = Data.HEROES[Data.HeroName][3],
 	BaseWindupTime = nil,
 	Reset = false,
@@ -4457,6 +4563,10 @@ Attack = {
 		if self.IsGraves then
 			return myHero.attackData.animationTime * 0.9
 		end
+		if self.IsAphelios and Buff:HasBuff(myHero, "ApheliosCrescendumManager") then
+		 return 1.1 / (myHero.attackSpeed * self.BaseAttackSpeed)
+		end
+
 		return 1 / (myHero.attackSpeed * self.BaseAttackSpeed)
 	end,
 
@@ -4586,6 +4696,7 @@ Orbwalker = {
 			return
 		end
 		if self.IsNone then
+			Control.KeyUp(HK_TCO)
 			return
 		end
 		self:Orbwalk()
@@ -4735,11 +4846,24 @@ Orbwalker = {
 		return GameTimer() > unit.attackData.endTime
 	end,
 
+	KindredETarget = function(self, unit)
+		if (unit and Buff:HasBuff(unit,"kindredecharge"))==false then
+			return false
+		end
+		local particleCount = Game.ParticleCount()
+		for i = particleCount, 1, -1 do
+			local obj = Game.Particle(i)
+			if obj and obj.type == "obj_GeneralParticleEmitter" and obj.name:lower():find("kindred_base_e_stack_3")  then
+				return false
+			end
+		end
+		return true
+	end,
 	GetTarget = function(self)
 		if
 			Object:IsValid(self.ForceTarget)
 			and ChampionInfo:CustomIsTargetable(self.ForceTarget)
-			and not Object:IsHeroImmortal(self.ForceTarget, true)
+			and (Object:IsHeroImmortal(self.ForceTarget, true)==false or (Object.IsKindred and (self:KindredETarget(self.ForceTarget))))
 		then
 			return self.ForceTarget
 		end
@@ -4885,6 +5009,7 @@ _G.SDK = {
 	Cursor = Cursor,
 	Attack = Attack,
 	Orbwalker = Orbwalker,
+	Cached = Cached,
 	DAMAGE_TYPE_PHYSICAL = DAMAGE_TYPE_PHYSICAL,
 	DAMAGE_TYPE_MAGICAL = DAMAGE_TYPE_MAGICAL,
 	DAMAGE_TYPE_TRUE = DAMAGE_TYPE_TRUE,
