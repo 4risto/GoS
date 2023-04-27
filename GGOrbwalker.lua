@@ -1,4 +1,4 @@
-local __version__ = 3.002
+local __version__ = 3.005
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
