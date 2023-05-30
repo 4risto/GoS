@@ -82,13 +82,7 @@ end
 Callback.Add("Load", function()
     orbwalker = _G.SDK.Orbwalker
     TargetSelector = _G.SDK.TargetSelector
-    if FileExist(COMMON_PATH .. "GamsteronPrediction.lua") then
-        require('GamsteronPrediction');
-    else
-        print("Requires GamsteronPrediction please download the file thanks!");
-        return
-    end
-
+   
     if FileExist(COMMON_PATH .. "PremiumPrediction.lua") then
         require('PremiumPrediction');
     else
