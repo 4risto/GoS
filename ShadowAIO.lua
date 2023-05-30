@@ -40,12 +40,12 @@ do
         Lua = {
             Path = SCRIPT_PATH,
             Name = "ShadowAIO.lua",
-            Url = "https://raw.githubusercontent.com/ShadowFusion/MJGA/master/ShadowAIO.lua"
+            Url = "https://raw.githubusercontent.com/4risto/GoS/master/ShadowAIO.lua"
         },
         Version = {
             Path = SCRIPT_PATH,
             Name = "ShadowAIO.version",
-            Url = "https://raw.githubusercontent.com/ShadowFusion/MJGA/master/ShadowAIO.version"    -- check if Raw Adress correct pls.. after you have create the version file on Github
+            Url = "https://raw.githubusercontent.com/4risto/GoS/masterShadowAIO.version"    -- check if Raw Adress correct pls.. after you have create the version file on Github
         }
     }
     
