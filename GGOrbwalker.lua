@@ -1,4 +1,4 @@
-local __version__ = 3.005
+local __version__ = 3.006
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -285,6 +285,7 @@ local function CastKey(key)
 	Control.KeyDown(HK_TCO)
 		Control.KeyDown(key)
 		Control.KeyUp(key)
+
 	end
 end
 
@@ -559,7 +560,7 @@ ChampionInfo = {
 				and soldier.name == "AzirSoldier"
 				and soldier.health > 0
 				and GetDistance(soldier, myHero) < 750
-				and GetDistance(soldier, obj) < 340
+				and GetDistance(soldier, obj) < 375
 			then
 				result = true
 			end
@@ -592,7 +593,7 @@ FlashHelper = {
 			and not GameIsChatOpen()
 			and GameIsOnTop()
 		then
-			print("Flash Helper | Flashing!")
+			--print("Flash Helper | Flashing!")
 			self.Timer = GetTickCount()
 			Control.Flash()
 		end
@@ -884,6 +885,7 @@ Menu = {
         self.Target:MenuElement({id = 'OnlySelectedTarget', name = 'Only Selected Target', value = false})
         self.Target:MenuElement({id = 'SortMode' .. myHero.charName, name = 'Sort Mode', value = 1, drop = {'Auto', 'Closest', 'Near Mouse', 'Lowest HP', 'Lowest MaxHP', 'Highest Priority', 'Most Stack', 'Most AD', 'Most AP', 'Less Cast', 'Less Attack'}})
 		self.Target:MenuElement({id = 'mindistance', name = 'mindistance', value = 400, min = 100, max = 600, step=25 })
+		self.Target:MenuElement({id = 'maxdistance', name = 'maxdistance', value = 800, min = 100, max = 1500, step=25 })
 		self.Target:MenuElement({id = 'distmultiplier', name = 'distance multiplier', value = 0.5, min = 0, max = 1, step=0.01 })
     end,
 
@@ -1011,6 +1013,8 @@ Color = {
 	Range = Draw.Color(150, 49, 210, 0),
 	EnemyRange = Draw.Color(150, 255, 0, 0),
 	Cursor = Draw.Color(255, 0, 255, 0),
+	drawcolor1 = Draw.Color(150, 255, 255, 255),
+	drawcolor2 = Draw.Color(150, 239, 159, 55),
 }
 
 Action = {
@@ -1236,9 +1240,6 @@ Damage = {
 				args.RawPhysical = args.RawPhysical + args.From.totalDamage * 0.1
 			end
 		end,
-		["Kalista"] = function(args)
-			args.RawPhysical = args.RawPhysical - args.From.totalDamage * 0.1
-		end,
 		["Kayle"] = function(args)
 			local level = args.From:GetSpellData(_E).level
 			if level > 0 then
@@ -1370,9 +1371,9 @@ Damage = {
 		["Jhin"] = function(args)
 			if myHero.hudAmmo==1 then
 				args.CriticalStrike = true
-				args.RawPhysical = args.RawPhysical
+				args.CalculatedPhysical = args.CalculatedPhysical
 					+ math_min(0.25, 0.1 + 0.05 * math_ceil(args.From.levelData.lvl / 5))
-						* (args.Target.maxHealth - args.Target.health)
+						* (args.Target.maxHealth - args.Target.health)*0.66 --shortcut for dealing with crit multipliers
 			end
 		end,
 		["Lux"] = function(args)
@@ -1535,7 +1536,9 @@ Damage = {
 			local levelAD = { 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1, 1.11, 1.12, 1.14, 1.16, 1.2, 1.24, 1.28, 1.32, 1.36, 1.40, 1.44}
 			local JhinAD= ((((59+4.7*(myHero.levelData.lvl-1)*(0.7025+(0.0175*(myHero.levelData.lvl-1)))))*(levelAD[math.max(math.min(myHero.levelData.lvl, 18), 1)]+myHero.critChance*0.3+0.25*(myHero.attackSpeed-1)))+myHero.bonusDamage)
 			args.RawTotal=JhinAD
+
 		end
+
 		self:SetHeroStaticDamage(args)
 		local HashSet = {}
 		for i = 1, #ItemSlots do
@@ -1576,6 +1579,7 @@ Damage = {
 		elseif args.DamageType == DAMAGE_TYPE_TRUE then
 			args.CalculatedTrue = args.CalculatedTrue + args.RawTotal
 		end
+
 		if args.RawPhysical > 0 then
 			args.CalculatedPhysical = args.CalculatedPhysical
 				+ self:CalculateDamage(
@@ -1626,9 +1630,12 @@ Damage = {
 				end		
 				return self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion))*1.33
 			end
-
+--[[ 			if myHero.hudAmmo==1 then
+				print(self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion)))
+			end ]]
 			return self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion))
 		end
+	
 		if targetIsMinion then
 			if target.maxHealth <= 6 then
 				return 1
@@ -1643,8 +1650,9 @@ Damage = {
 		if from.charName=="Jhin" then
 			local levelAD = { 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1, 1.11, 1.12, 1.14, 1.16, 1.2, 1.24, 1.28, 1.32, 1.36, 1.40, 1.44}
 			local JhinAD= ((((59+4.7*(myHero.levelData.lvl-1)*(0.7025+(0.0175*(myHero.levelData.lvl-1)))))*(levelAD[math.max(math.min(myHero.levelData.lvl, 18), 1)]+myHero.critChance*0.3+0.25*(myHero.attackSpeed-1)))+myHero.bonusDamage)
-			return self:CalculateDamage(from, target, DAMAGE_TYPE_PHYSICAL, JhinAD, false, true)
-		end
+			return self:CalculateDamage(from, target, DAMAGE_TYPE_PHYSICAL, JhinAD, false, true)			
+		end	
+	
 		return self:CalculateDamage(from, target, DAMAGE_TYPE_PHYSICAL, from.totalDamage, false, true)
 	end,
 
@@ -1697,9 +1705,6 @@ Data = {
 		end,
 		["Malzahar"] = function()
 			return Buff:HasBuff(myHero, "alzaharnethergraspsound")
-		end,
-		["MasterYi"] = function()
-			return Buff:HasBuff(myHero, "Meditate")
 		end,
 		["MissFortune"] = function()
 			return Buff:HasBuff(myHero, "missfortunebulletsound")
@@ -1827,7 +1832,7 @@ Data = {
 				return 1700		
 			elseif Buff:HasBuff(myHero, "ApheliosSeverumManager") then
 				return math.huge
-			end
+			end			
 			return 1500
 		end,
 		["Caitlyn"] = function()
@@ -1841,6 +1846,9 @@ Data = {
 		end,
 		["Seraphine"] = function()
 			return 1800
+		end,
+		["Anivia"] = function()
+			return 1600
 		end,
 		["Illaoi"] = function()
 			if Buff:HasBuff(myHero, "IllaoiW") then
@@ -1976,6 +1984,7 @@ Data = {
 		MonkeyKing = { 3, true, 0.69 },
 		Mordekaiser = { 4, true, 0.625 },
 		Morgana = { 3, false, 0.625 },
+		Naafiri = { 4, true, 0.688 },
 		Nami = { 3, false, 0.644 },
 		Nasus = { 2, true, 0.638 },
 		Nautilus = { 1, true, 0.706 },
@@ -2137,7 +2146,6 @@ Data = {
 	},
 
 	AttackResets = {
-		["Ashe"] = { Slot = _Q, Key = HK_Q },
 		["Blitzcrank"] = { Slot = _E, Key = HK_E },
 		["Camille"] = { Slot = _Q, Key = HK_Q },
 		["Chogath"] = { Slot = _E, Key = HK_E },
@@ -2145,6 +2153,7 @@ Data = {
 		["DrMundo"] = { Slot = _E, Key = HK_E },
 		["Elise"] = { Slot = _W, Key = HK_W, Name = "EliseSpiderW" },
 		["Fiora"] = { Slot = _E, Key = HK_E },
+		["Fizz"] = { Slot = _W, Key = HK_W },		
 		["Garen"] = { Slot = _Q, Key = HK_Q },
 		["Graves"] = { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true },
 		["Gwen"] = { Slot = _E, Key = HK_E, OnCast = true },
@@ -2157,7 +2166,7 @@ Data = {
 		["Kindred"] = { Slot = _Q, Key = HK_Q },
 		["KSante"] = { Slot = _E, Key = HK_E, CanCancel = true, OnCast = true },
 		["Leona"] = { Slot = _Q, Key = HK_Q },
-		["Lucian"] = { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true }, -- Buff = {["lucianpassivebuff"] = true},
+		["Lucian"] = { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true, Buff = { ["lucianpassivebuff"] = true}},
 		["MasterYi"] = { Slot = _W, Key = HK_W },
 		["Mordekaiser"] = { Slot = _Q, Key = HK_Q },
 		["Nautilus"] = { Slot = _W, Key = HK_W },
@@ -2172,6 +2181,7 @@ Data = {
 		["Shyvana"] = { Slot = _Q, Key = HK_Q },
 		["Sivir"] = { Slot = _W, Key = HK_W },
 		["Trundle"] = { Slot = _Q, Key = HK_Q },
+		["Talon"] = { Slot = _Q, Key = HK_Q },
 		["Vayne"] = { Slot = _Q, Key = HK_Q, Buff = { ["vaynetumblebonus"] = true }, CanCancel = true },
 		["Vi"] = { Slot = _E, Key = HK_E },
 		["Volibear"] = { Slot = _Q, Key = HK_Q },
@@ -2192,9 +2202,9 @@ Data = {
 		local X, T = 0, 0
 		if
 			not self.AttackResetSuccess
-			and not Control.IsKeyDown(HK_LUS)
+			and not Control.IsKeyDown(8)
 			and not GameIsChatOpen()
-			and wParam == AttackResetKey
+			and wParam == AttackResetKey or (Object.IsNasus and wParam == HK_Q)
 		then
 			local checkNum = Object.IsRiven and 400 or 600
 			if GetTickCount() <= self.AttackResetTimer + checkNum then
@@ -2331,7 +2341,7 @@ Data = {
 		end
 		if self.AttackResetCanCancel then
 			if self.AttackResetOnCast then
-				if self.AttackResetBuff == nil or Buff:HasBuff(myHero, self.AttackResetBuff) then
+				if self.AttackResetBuff == nil or Buff:ContainsBuffs(myHero, self.AttackResetBuff) then
 					local spellData = myHero:GetSpellData(self.AttackResetSlot)
 					local startTime = spellData.castTime - spellData.cd
 					if
@@ -2352,7 +2362,7 @@ Data = {
 					end
 					return false
 				end
-			elseif Buff:ContainsBuffs(myHero, self.AttackResetBuff) then
+			elseif Buff:ContainsBuffs(myHero, self.AttackResetBuff)  then
 				if not self.AttackResetSuccess then
 					self.AttackResetSuccess = true
 					--print('Reset Buff')
@@ -2737,9 +2747,9 @@ Spell = {
 				for i = 1, #targets do
 					local minion = targets[i]
 					if minion.LastHitable then
-						Draw.Circle(minion.Minion.pos, 50, 1, Draw.Color(150, 255, 255, 255))
+						Draw.Circle(minion.Minion.pos, 50, 1, Color.drawcolor1)
 					elseif minion.AlmostLastHitable then
-						Draw.Circle(minion.Minion.pos, 50, 1, Draw.Color(150, 239, 159, 55))
+						Draw.Circle(minion.Minion.pos, 50, 1,  Color.drawcolor2)
 					end
 				end
 			end,
@@ -2784,6 +2794,7 @@ _G.Control.KeyDown = function(key)
 			end
 		end
 	end
+--	print(key..Game.Timer())
 	Spell.ControlKeyDown(key)
 end
 
@@ -2892,7 +2903,7 @@ SummonerSpell = {
 				casted = true
 				DelayAction(function()
 					Control.CastSpell(hk)
-				end,0.176)
+				end,0.13)
 				self.CleanseStartTime = GetTickCount()
 				break
 			end
@@ -3055,7 +3066,7 @@ Object = {
 	IsCaitlyn = myHero.charName == "Caitlyn",
 	IsRiven = myHero.charName == "Riven",
 	IsKindred = myHero.charName == "Kindred",
-
+	IsNasus = myHero.charName == "Nasus",
 	OnLoad = function(self)
 		for i = 1, GameObjectCount() do
 			local object = GameObject(i)
@@ -3122,8 +3133,8 @@ Object = {
 				if isAttack then
 					if bufff.duration>= myHero.attackData.windUpTime + (unit.distance/Attack:GetProjectileSpeed())+Data:GetLatency()-0.01 then
 				--	print(bufff.duration)
-				return true
-			end
+						return true
+					end
 					
 				else
 					return true
@@ -3426,7 +3437,9 @@ Target = {
 	CurrentSort = nil,
 	CurrentSortMode = 0,
 	CurrentDamage = nil,
-
+--	lastNetProc=0,
+--	lastCaitWProc=0,
+	--lastCaitWEnemy=nil,
 	ActiveStackBuffs = { "BraumMark" },
 
 	StackBuffs = {
@@ -3451,7 +3464,7 @@ Target = {
 	MenuTableSortMode = Menu.Target["SortMode" .. myHero.charName],
 	MenuCheckSelected = Menu.Target.SelectedTarget,
 	MenuCheckSelectedOnly = Menu.Target.OnlySelectedTarget,
-
+	
 	WndMsg = function(self, msg, wParam)
 		if msg == WM_LBUTTONDOWN and self.MenuCheckSelected:Value() and GetTickCount() > self.SelectionTick + 100 then
 			self.Selected = nil
@@ -3603,12 +3616,12 @@ if Target.StackBuffs[myHero.charName] then
 end
 
 Target.SortModes = {
-
 	[SORT_AUTO] = function(a, b)
 		mindist= Menu.Target.mindistance:Value()
+		maxdist= Menu.Target.maxdistance:Value()
 		distmultiplier=Menu.Target.distmultiplier:Value()
-		local aMultiplier = 1.75 - (Target:GetPriority(a) * 0.15) +(distmultiplier*math.min((math.max(a.distance,mindist)/math.max(b.distance,mindist)),2))
-		local bMultiplier = 1.75 - (Target:GetPriority(b) * 0.15) +(distmultiplier*math.min((math.max(b.distance,mindist)/math.max(a.distance,mindist)),2))
+		local aMultiplier = 1.75 - (Target:GetPriority(a) * 0.15) +(distmultiplier*(math.max(math.min(a.distance,maxdist),mindist)/math.max(math.min(b.distance,maxdist),mindist)))
+		local bMultiplier = 1.75 - (Target:GetPriority(b) * 0.15) +(distmultiplier*(math.max(math.min(b.distance,maxdist),mindist)/math.max(math.min(a.distance,maxdist),mindist)))
 		local aDef, bDef = 0, 0
 		if Target.CurrentDamage == DAMAGE_TYPE_MAGICAL then
 			local magicPen, magicPenPercent = myHero.magicPen, myHero.magicPenPercent
@@ -3785,6 +3798,9 @@ Health = {
 					IsInRange(myHero, obj, attackRange + obj.boundingRadius)
 					or (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(obj))
 				then
+					if (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(obj)) then
+					end
+
 					table_insert(self.EnemyMinionsInAttackRange, obj)
 				end
 			elseif team == Data.JungleTeam then
@@ -3853,7 +3869,7 @@ Health = {
 		pos = myHero.pos
 		speed = Attack:GetProjectileSpeed()
 		windup = Attack:GetWindup()
-		time = windup - Data:GetLatency() - self.ExtraFarmDelay:Value() * 0.001
+		time = windup - self.ExtraFarmDelay:Value() * 0.001 --why is this -getlatency here? i isbjorn might try removing it -- - Data:GetLatency()
 		anim = Attack:GetAnimation()
 		for i = 1, #self.EnemyMinionsInAttackRange do
 			local target = self.EnemyMinionsInAttackRange[i]
@@ -3867,6 +3883,7 @@ Health = {
 				)
 			)
 		end
+	
 		-- SPELLS
 		for i = 1, #self.Spells do
 			self.Spells[i]:Tick()
@@ -4037,6 +4054,9 @@ Health = {
 		almostLastHitable = false
 		almostalmost = false
 		unkillable = false
+		if (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(target)) then
+			damage=({50, 67, 84, 101, 118})[myHero:GetSpellData(_W).level] + 0.6 * myHero.ap
+		end
 		-- unkillable
 		if health < 0 then
 			unkillable = true
@@ -4073,7 +4093,13 @@ Health = {
 		extraTime = (1.5 - anim) * 0.3
 		extraTime = extraTime < 0 and 0 or extraTime
 		almostHealth, turretAttacked = self:LocalGetPrediction(target, anim + time + extraTime) -- + 0.25
+		if (target.charName == "SRU_ChaosMinionSiege" or target.charName == "SRU_OrderMinionSiege") then
+			almostHealth, turretAttacked = self:LocalGetPrediction(target, anim + time*1.4 + extraTime) 
+		end
 		if almostHealth < 0 then
+--[[ 			if (target.charName == "SRU_ChaosMinionSiege" or target.charName == "SRU_OrderMinionSiege") then
+				print("Siege Minionalmost")
+			end ]]
 			almostLastHitable = true
 			self.ShouldWaitTime = GetTickCount()
 		elseif almostHealth - damage < 0 then
@@ -4081,7 +4107,7 @@ Health = {
 		elseif currentHealth ~= almostHealth then
 			almostAlmostHealth, turretAttacked = self:LocalGetPrediction(
 				target,
-				1.25 * anim + 1.25 * time + 0.5 + extraTime
+				1.25 * anim + 1.25 * time + extraTime -- removed +0.5 just to test
 			)
 			if almostAlmostHealth - damage < 0 then
 				almostalmost = true
@@ -4167,12 +4193,16 @@ Health = {
 			if
 				Object:IsValid(minion.Minion)
 				and minion.LastHitable
-				and minion.PredictedHP < min
-				and Data:IsInAutoAttackRange(myHero, minion.Minion)
+				and (minion.PredictedHP < min or ((minion.Minion.charName == "SRU_ChaosMinionSiege" or minion.Minion.charName == "SRU_OrderMinionSiege")))
+				and (Data:IsInAutoAttackRange(myHero, minion.Minion) or (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(minion.Minion)))
 			then
 				min = minion.PredictedHP
 				result = minion.Minion
 				self.LastHitHandle = result.handle
+				if (minion.Minion.charName == "SRU_ChaosMinionSiege" or minion.Minion.charName == "SRU_OrderMinionSiege") then
+					--print("Siege Miniongetlasthittaarget")
+					break
+				end
 			end
 		end
 		return result
@@ -4218,7 +4248,7 @@ Health = {
 		local num = 10000
 		for i = 1, #self.FarmMinions do
 			local minion = self.FarmMinions[i]
-			if Data:IsInAutoAttackRange(myHero, minion.Minion) then
+			if Data:IsInAutoAttackRange(myHero, minion.Minion) or (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(minion.Minion)) then
 				if minion.PredictedHP < num and not minion.AlmostAlmost and not minion.AlmostLastHitable then --and (self.AllyTurret == nil or minion.CanUnderTurret) then
 					num = minion.PredictedHP
 					laneMinion = minion.Minion
@@ -4406,18 +4436,20 @@ Cursor = {
 	StepSetToCastPos = function(self)
 		local pos
 		if self.IsTarget then
-			pos = self.CastPos.pos:To2D()
+			pos = self.CastPos.pos:To2D() 
 			if self.CastPos.charName == "GangplankBarrel" then
-				pos.y=pos.y-((60/1440)*Game.Resolution().y)
+				pos.y=pos.y-((69/1440)*Game.Resolution().y)
 			end
-            if  self.CastPos.charName:lower():find("chaosminion") or  self.CastPos.charName:lower():find("orderminion") then
+			if  self.CastPos.charName:lower():find("chaosminion") or  self.CastPos.charName:lower():find("orderminion") then
 				pos.y=pos.y-((25/1440)*Game.Resolution().y)
-            end
+			end
 		else
 			pos = (self.CastPos.z ~= nil) and Vector(self.CastPos.x, self.CastPos.y or 0, self.CastPos.z):To2D()
 				or Vector({ x = self.CastPos.x, y = self.CastPos.y })
 		end
+
 		Control.SetCursorPos(pos.x, pos.y)
+	
 	end,
 
 	StepPressKey = function(self)
@@ -4428,15 +4460,15 @@ Cursor = {
 		else
 	--	Control.KeyDown(HK_TCO)
 		end
-		
-		if self.IsMouseClick then
-			Control.mouse_event(MOUSEEVENTF_RIGHTDOWN)
-			Control.mouse_event(MOUSEEVENTF_RIGHTUP)
-		else
-			Control.KeyDown(self.Key)
-			Control.KeyUp(self.Key)
-		end
+			if self.IsMouseClick then
+				Control.mouse_event(MOUSEEVENTF_RIGHTDOWN)
+				Control.mouse_event(MOUSEEVENTF_RIGHTUP)
+			else
+				Control.KeyDown(self.Key)
+				Control.KeyUp(self.Key)
+			end
 		self.Step = 1
+
 	end,
 
 	StepWaitForResponse = function(self)
@@ -4465,9 +4497,11 @@ Cursor = {
 		if step == 0 then
 			self:StepReady()
 		elseif step == 1 then
+			
 			self:StepWaitForResponse()
 		elseif step == 2 then
 			self:StepSetToCursorPos()
+			
 		elseif step == 3 then
 			self:StepWaitForReady()
 		end
@@ -4845,7 +4879,7 @@ Orbwalker = {
 		end
 		return GameTimer() > unit.attackData.endTime
 	end,
-
+	
 	KindredETarget = function(self, unit)
 		if (unit and Buff:HasBuff(unit,"kindredecharge"))==false then
 			return false
@@ -4865,6 +4899,7 @@ Orbwalker = {
 			and ChampionInfo:CustomIsTargetable(self.ForceTarget)
 			and (Object:IsHeroImmortal(self.ForceTarget, true)==false or (Object.IsKindred and (self:KindredETarget(self.ForceTarget))))
 		then
+
 			return self.ForceTarget
 		end
 		if self.Modes[ORBWALKER_MODE_COMBO] then
@@ -4907,7 +4942,7 @@ Orbwalker = {
 					if args.Target and not ChampionInfo:CustomIsTargetable(args.Target) then
 						args.Target = Target:GetComboTarget()
 					end
-					if args.Target then
+					if args.Target then					
 						self.LastTarget = args.Target
 						local targetpos = args.Target.pos
 						local attackpos = targetpos:ToScreen().onScreen and args.Target
@@ -4950,6 +4985,7 @@ Orbwalker = {
 				return
 			end
 			if GetTickCount() > Movement.MoveTimer then
+						
 				local args = { Target = nil, Process = true }
 				for i = 1, #self.OnMoveCb do
 					self.OnMoveCb[i](args)
