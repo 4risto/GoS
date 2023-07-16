@@ -1,5 +1,5 @@
 local LoadSimpleScripts = true
-local Version = 1.957
+local Version = 1.958
 local Name = "GGAIO"
 
 Callback.Add("Load", function()
@@ -15,7 +15,7 @@ end)
 
 if not FileExist(COMMON_PATH .. "GGPrediction.lua") then
 	DownloadFileAsync(
-		"https://raw.githubusercontent.com/gamsteron/GG/master/GGPrediction.lua",
+		"https://raw.githubusercontent.com/4risto/GOS/master/GGPrediction.lua",
 		COMMON_PATH .. "GGPrediction.lua",
 		function() end
 	)
@@ -2645,6 +2645,8 @@ if Champion == nil and myHero.charName == "KogMaw" then
 		)
 	end
 end
+
+-- END OF KOGMAW
 
 if Champion == nil and myHero.charName == "MissFortune" then
 	--Menu:Info('Aram - WQE Spam')
