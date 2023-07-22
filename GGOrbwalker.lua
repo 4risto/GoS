@@ -1,4 +1,4 @@
-local __version__ = 3.006
+local __version__ = 3.007
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -601,11 +601,11 @@ FlashHelper = {
 
 	IsReady = function(self)
 		local has_flash = false
-		if myHero:GetSpellData(SUMMONER_1).name == "SummonerFlash" then
+		if myHero:GetSpellData(SUMMONER_1).name == "SummonerFlash" or myHero:GetSpellData(SUMMONER_1).name == "SummonerCherryFlash" then
 			self.FlashSpell = SUMMONER_1
 			has_flash = true
 		end
-		if myHero:GetSpellData(SUMMONER_2).name == "SummonerFlash" then
+		if myHero:GetSpellData(SUMMONER_2).name == "SummonerFlash" or myHero:GetSpellData(SUMMONER_2).name == "SummonerCherryFlash" then
 			self.FlashSpell = SUMMONER_2
 			has_flash = true
 		end
@@ -615,7 +615,7 @@ FlashHelper = {
 		if GetTickCount() < LastChatOpenTimer + 1000 then
 			return
 		end
-		if myHero:GetSpellData(self.FlashSpell).currentCd > 0 then
+		if myHero:GetSpellData(self.FlashSpell).currentCd > 0 or myHero:GetSpellData(self.FlashSpell).name == "SummonerCherryFlash_CD" then
 			return false
 		end
 		if GameCanUseSpell(self.FlashSpell) ~= 0 then
@@ -1627,7 +1627,7 @@ Damage = {
 			if from.charName=="Graves" then
 				if target.distance<target.boundingRadius/0.212 then
 					return self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion))*2
-				end		
+				end
 				return self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion))*1.33
 			end
 --[[ 			if myHero.hudAmmo==1 then
@@ -1635,7 +1635,7 @@ Damage = {
 			end ]]
 			return self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion))
 		end
-	
+
 		if targetIsMinion then
 			if target.maxHealth <= 6 then
 				return 1
@@ -1650,9 +1650,9 @@ Damage = {
 		if from.charName=="Jhin" then
 			local levelAD = { 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1, 1.11, 1.12, 1.14, 1.16, 1.2, 1.24, 1.28, 1.32, 1.36, 1.40, 1.44}
 			local JhinAD= ((((59+4.7*(myHero.levelData.lvl-1)*(0.7025+(0.0175*(myHero.levelData.lvl-1)))))*(levelAD[math.max(math.min(myHero.levelData.lvl, 18), 1)]+myHero.critChance*0.3+0.25*(myHero.attackSpeed-1)))+myHero.bonusDamage)
-			return self:CalculateDamage(from, target, DAMAGE_TYPE_PHYSICAL, JhinAD, false, true)			
-		end	
-	
+			return self:CalculateDamage(from, target, DAMAGE_TYPE_PHYSICAL, JhinAD, false, true)
+		end
+
 		return self:CalculateDamage(from, target, DAMAGE_TYPE_PHYSICAL, from.totalDamage, false, true)
 	end,
 
@@ -1829,10 +1829,10 @@ Data = {
 			elseif Buff:HasBuff(myHero, "ApheliosCalibrumManager") then
 				return 3000
 			elseif Buff:HasBuff(myHero, "ApheliosInfernumManager") then
-				return 1700		
+				return 1700
 			elseif Buff:HasBuff(myHero, "ApheliosSeverumManager") then
 				return math.huge
-			end			
+			end
 			return 1500
 		end,
 		["Caitlyn"] = function()
@@ -2153,7 +2153,7 @@ Data = {
 		["DrMundo"] = { Slot = _E, Key = HK_E },
 		["Elise"] = { Slot = _W, Key = HK_W, Name = "EliseSpiderW" },
 		["Fiora"] = { Slot = _E, Key = HK_E },
-		["Fizz"] = { Slot = _W, Key = HK_W },		
+		["Fizz"] = { Slot = _W, Key = HK_W },
 		["Garen"] = { Slot = _Q, Key = HK_Q },
 		["Graves"] = { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true },
 		["Gwen"] = { Slot = _E, Key = HK_E, OnCast = true },
@@ -3135,7 +3135,7 @@ Object = {
 				--	print(bufff.duration)
 						return true
 					end
-					
+
 				else
 					return true
 				end
@@ -3464,7 +3464,7 @@ Target = {
 	MenuTableSortMode = Menu.Target["SortMode" .. myHero.charName],
 	MenuCheckSelected = Menu.Target.SelectedTarget,
 	MenuCheckSelectedOnly = Menu.Target.OnlySelectedTarget,
-	
+
 	WndMsg = function(self, msg, wParam)
 		if msg == WM_LBUTTONDOWN and self.MenuCheckSelected:Value() and GetTickCount() > self.SelectionTick + 100 then
 			self.Selected = nil
@@ -3511,7 +3511,7 @@ Target = {
 			self.MenuCheckSelected:Value()
 			and Object:IsValid(self.Selected)
 			and ChampionInfo:CustomIsTargetable(self.Selected)
-			and (Object:IsHeroImmortal(self.Selected, isAttack)==false or (Object.IsKindred and Orbwalker:KindredETarget(self.Selected))) 
+			and (Object:IsHeroImmortal(self.Selected, isAttack)==false or (Object.IsKindred and Orbwalker:KindredETarget(self.Selected)))
 		then
 			if type(a) == "number" then
 				if self.Selected.distance < a then
@@ -3883,7 +3883,7 @@ Health = {
 				)
 			)
 		end
-	
+
 		-- SPELLS
 		for i = 1, #self.Spells do
 			self.Spells[i]:Tick()
@@ -4094,7 +4094,7 @@ Health = {
 		extraTime = extraTime < 0 and 0 or extraTime
 		almostHealth, turretAttacked = self:LocalGetPrediction(target, anim + time + extraTime) -- + 0.25
 		if (target.charName == "SRU_ChaosMinionSiege" or target.charName == "SRU_OrderMinionSiege") then
-			almostHealth, turretAttacked = self:LocalGetPrediction(target, anim + time*1.4 + extraTime) 
+			almostHealth, turretAttacked = self:LocalGetPrediction(target, anim + time*1.4 + extraTime)
 		end
 		if almostHealth < 0 then
 --[[ 			if (target.charName == "SRU_ChaosMinionSiege" or target.charName == "SRU_OrderMinionSiege") then
@@ -4436,7 +4436,7 @@ Cursor = {
 	StepSetToCastPos = function(self)
 		local pos
 		if self.IsTarget then
-			pos = self.CastPos.pos:To2D() 
+			pos = self.CastPos.pos:To2D()
 			if self.CastPos.charName == "GangplankBarrel" then
 				pos.y=pos.y-((69/1440)*Game.Resolution().y)
 			end
@@ -4449,7 +4449,7 @@ Cursor = {
 		end
 
 		Control.SetCursorPos(pos.x, pos.y)
-	
+
 	end,
 
 	StepPressKey = function(self)
@@ -4497,11 +4497,11 @@ Cursor = {
 		if step == 0 then
 			self:StepReady()
 		elseif step == 1 then
-			
+
 			self:StepWaitForResponse()
 		elseif step == 2 then
 			self:StepSetToCursorPos()
-			
+
 		elseif step == 3 then
 			self:StepWaitForReady()
 		end
@@ -4879,7 +4879,7 @@ Orbwalker = {
 		end
 		return GameTimer() > unit.attackData.endTime
 	end,
-	
+
 	KindredETarget = function(self, unit)
 		if (unit and Buff:HasBuff(unit,"kindredecharge"))==false then
 			return false
@@ -4942,7 +4942,7 @@ Orbwalker = {
 					if args.Target and not ChampionInfo:CustomIsTargetable(args.Target) then
 						args.Target = Target:GetComboTarget()
 					end
-					if args.Target then					
+					if args.Target then
 						self.LastTarget = args.Target
 						local targetpos = args.Target.pos
 						local attackpos = targetpos:ToScreen().onScreen and args.Target
@@ -4985,7 +4985,7 @@ Orbwalker = {
 				return
 			end
 			if GetTickCount() > Movement.MoveTimer then
-						
+
 				local args = { Target = nil, Process = true }
 				for i = 1, #self.OnMoveCb do
 					self.OnMoveCb[i](args)
