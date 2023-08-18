@@ -1,6 +1,5 @@
-local __version__ = 3.008
+local __version__ = 3.009
 local __name__ = "GGOrbwalker"
-
 
 if _G.GGUpdate then
 	return
@@ -9,7 +8,6 @@ end
 _G.GGUpdate = {}
 do
 	function GGUpdate:__init()
-
 		self.Callbacks = {}
 	end
 
@@ -486,9 +484,7 @@ ChampionInfo = {
 				self:DetectGwenMist(enemy)
 			end
 			--print(GetDistance(self.GwenMistObject.pos, ally.pos))
-			if self.GwenMistObject and
-			 GetDistance(self.GwenMistObject.pos,
-			 ally.pos) >= 425 then
+			if GetDistance(self.GwenMistObject.pos, ally.pos) >= 425 then
 				return false
 			end
 		end
@@ -597,7 +593,7 @@ FlashHelper = {
 			and not GameIsChatOpen()
 			and GameIsOnTop()
 		then
-			print("Flash Helper | Flashing!")
+			--print("Flash Helper | Flashing!")
 			self.Timer = GetTickCount()
 			Control.Flash()
 		end
@@ -625,7 +621,7 @@ FlashHelper = {
 		if GameCanUseSpell(self.FlashSpell) ~= 0 then
 			return false
 		end
-		if GetTickCount() < self.Timer + 100 then
+		if GetTickCount() < self.Timer + 1000 then
 			return false
 		end
 		return true
@@ -686,12 +682,11 @@ Cached = {
 			for i = #self.ExtraUnits, 1, -1 do
 				local u = self.ExtraUnits[i]
 				if u and u.valid and u.visible and u.isTargetable and not u.dead and not u.isImmortal then
-					self.ExtraUnitsSaved=true
 				else
 					self.ExtraUnits[i] = nil
 				end
 			end
-				self.ExtraUnitsSaved = false
+			self.ExtraUnitsSaved = false
 		end
 		if self.TurretsSaved then
 			for i = #self.Turrets, 1, -1 do
@@ -945,7 +940,6 @@ Menu = {
             self.SummonerSpells.Cleanse:MenuElement({id = 'Count', name = 'Enemies Count', value = 1, min = 0, max = 5, step = 1})
             self.SummonerSpells.Cleanse:MenuElement({id = 'Distance', name = 'Enemies Distance < X', value = 1200, min = 0, max = 1500, step = 50})
             self.SummonerSpells.Cleanse:MenuElement({id = 'Duration', name = 'Buff Duration > X', value = 500, min = 0, max = 1000, step = 50})
-            self.SummonerSpells.Cleanse:MenuElement({id = 'Delay', name = 'humanized delay', value = 0.1, min = 0, max = 0.3, step = 0.01})
         end
     end,
 
@@ -970,7 +964,6 @@ Menu = {
             self.Main.Items.Qss:MenuElement({id = 'Count', name = 'Enemies Count', value = 1, min = 0, max = 5, step = 1})
             self.Main.Items.Qss:MenuElement({id = 'Distance', name = 'Enemies Distance < X', value = 1200, min = 0, max = 1500, step = 50})
             self.Main.Items.Qss:MenuElement({id = 'Duration', name = 'Buff Duration > X', value = 500, min = 0, max = 1000, step = 50})
-			self.Main.Items.Qss:MenuElement({id = 'Delay', name = 'humanized delay', value = 0.1, min = 0, max = 0.3, step = 0.01})
         end
     end,
 
@@ -1006,7 +999,7 @@ Menu:CreateDrawings()
 FlashHelper:CreateMenu(Menu.Main)
 Menu:CreateGeneral()
 
-_G.LATENCY = Game.Latency() or Menu.Main.Latency:Value()
+_G.LATENCY = Menu.Main.Latency:Value()
 
 Color = {
 	LightGreen = Draw.Color(255, 144, 238, 144),
@@ -1091,35 +1084,6 @@ Buff = {
 			if buffs[i].name:lower():find(name) then
 				result = true
 				break
-			end
-		end
-		return result
-	end,
-
-	GetBuffExpire = function(self, unit, name)
-		name = name:lower()
-		local result = 0
-		local buff = nil
-		local buffs = Cached:GetBuffs(unit)
-		for i = 1, #buffs do
-			buff = buffs[i]
-			if buff.name:lower() == name then
-				local expireTime = buff.expireTime
-				if expireTime > result then
-					result = expireTime
-				end
-			end
-		end
-		return result
-	end,
-
-	HasBuffContainsNameCount = function(self, unit, name)
-		name = name:lower()
-		local buffs = Cached:GetBuffs(unit)
-		local result = 0
-		for i = 1, #buffs do
-			if buffs[i].name:lower():find(name) then
-				result = result + 1
 			end
 		end
 		return result
@@ -1265,11 +1229,6 @@ Damage = {
 			if Buff:HasBuff(args.From, "DravenSpinningAttack") then
 				local level = args.From:GetSpellData(_Q).level
 				args.RawPhysical = args.RawPhysical + 25 + 5 * level + (0.55 + 0.1 * level) * args.From.bonusDamage
-			end
-		end,
-		["Fizz"] = function(args)
-			if Buff:HasBuff(args.From, "fizzw") then
-				args.RawMagical = args.RawMagical+ (30 + 20 * args.From:GetSpellData(_W).level) +0.5 * args.From.ap
 			end
 		end,
 		["Graves"] = function(args)
@@ -2209,11 +2168,10 @@ Data = {
 		["Leona"] = { Slot = _Q, Key = HK_Q },
 		["Lucian"] = { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true, Buff = { ["lucianpassivebuff"] = true}},
 		["MasterYi"] = { Slot = _W, Key = HK_W },
-		--["Mordekaiser"] = { Slot = _Q, Key = HK_Q },
+		["Mordekaiser"] = { Slot = _Q, Key = HK_Q },
 		["Nautilus"] = { Slot = _W, Key = HK_W },
 		["Nidalee"] = { Slot = _Q, Key = HK_Q, Name = "Takedown" },
 		["Nasus"] = { Slot = _Q, Key = HK_Q },
-		["Olaf"] = { Slot = _W, Key = HK_W },
 		["RekSai"] = { Slot = _Q, Key = HK_Q, Name = "RekSaiQ" },
 		["Renekton"] = { Slot = _W, Key = HK_W },
 		["Rengar"] = { Slot = _Q, Key = HK_Q },
@@ -2945,7 +2903,7 @@ SummonerSpell = {
 				casted = true
 				DelayAction(function()
 					Control.CastSpell(hk)
-				end,self.MenuCleanse.Delay:Value())
+				end,0.13)
 				self.CleanseStartTime = GetTickCount()
 				break
 			end
@@ -3052,7 +3010,7 @@ Item = {
 				casted = true
 				DelayAction(function()
 					Control.CastSpell(self.Hotkey)
-				end,self.MenuQss.Delay:Value())
+				end,0.176)
 				self.CleanseStartTime = GetTickCount()
 				break
 			end
@@ -3850,11 +3808,6 @@ Health = {
 					IsInRange(myHero, obj, attackRange + obj.boundingRadius)
 					or (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(obj))
 				then
-					if obj.charName == "SennaSoul" then
-						local value= {LastHitable = true,Unkillable = false,AlmostLastHitable = false,PredictedHP = 1,Minion = obj,	AlmostAlmost = false,Time = GameTimer()}
-						table_insert(Health.FarmMinions, value)
-						table_insert(self.EnemyMinionsInAttackRange, obj)
-					end
 					table_insert(self.JungleMinionsInAttackRange, obj)
 				end
 			end
@@ -4669,23 +4622,15 @@ Attack = {
 	end,
 
 	IsReady = function(self)
-		if myHero.charName=="Sion" and myHero.attackData.state==STATE_ATTACK then
-			return true
-		end
 		if self.CastEndTime > self.LocalStart then
 			if self.Reset or GameTimer() >= self.ServerStart + self:GetAnimation() - Data:GetLatency() - 0.01 then
 				return true
 			end
 			return false
 		end
-
 		if GameTimer() < self.LocalStart + 0.2 then
 			return false
 		end
-		if myHero.charName=="Rengar" and Game.CanUseSpell(_Q)~=8 and myHero:GetSpellData(63).castTime+myHero.attackData.windDownTime>Game.Timer()+10+LATENCY * 0.001 then
-			return false
-		end
-
 		return true
 	end,
 
@@ -4907,7 +4852,7 @@ Orbwalker = {
 			if (JustEvade and JustEvade.Evading()) or (ExtLibEvade and ExtLibEvade.Evading) then
 				return false
 			end
-	 		if myHero.charName == "Kalista" then
+			if myHero.charName == "Kalista" then
 				return true
 			end
 			if not Data:HeroCanMove() then
