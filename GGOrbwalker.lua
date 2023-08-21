@@ -1,4 +1,4 @@
-local __version__ = 3.010
+local __version__ = 3.011
 local __name__ = "GGOrbwalker"
 
 
@@ -1171,6 +1171,23 @@ Buff = {
 			buff = buffs[i]
 			if buff.name:lower() == name then
 				local count = buff.count
+				if count > result then
+					result = count
+				end
+			end
+		end
+		return result
+	end,
+
+	GetBuffStacks = function(self, unit, name)
+		name = name:lower()
+		local result = 0
+		local buff = nil
+		local buffs = Cached:GetBuffs(unit)
+		for i = 1, #buffs do
+			buff = buffs[i]
+			if buff.name:lower() == name then
+				local count = buff.stacks
 				if count > result then
 					result = count
 				end
@@ -5163,7 +5180,7 @@ Callback.Add("Load", function()
 			print("DRAW")
 		end
 		drawTest = 1]]
-	
+
 		if GameIsChatOpen() then
 			LastChatOpenTimer = GetTickCount()
 		end
