@@ -1,4 +1,4 @@
-local __version__ = 3.011
+local __version__ = 3.012
 local __name__ = "GGOrbwalker"
 
 
@@ -557,14 +557,19 @@ ChampionInfo = {
 
 	IsInAzirSoldierRange = function(self, obj)
 		local result = false
+		local commandRange = 750
+		local defaultAARange = 525
+		if(myHero.range == 575) then -- Lethal Tempo grants 50 attack range. Hacky fix.
+			commandRange = 800
+		end
 		for i = 1, #self.AzirSoldiers do
 			local soldier = self.AzirSoldiers[i]
 			if
 				soldier
 				and soldier.name == "AzirSoldier"
 				and soldier.health > 0
-				and GetDistance(soldier, myHero) < 750
-				and GetDistance(soldier, obj) < 375
+				and GetDistance(soldier, myHero) < commandRange
+				and GetDistance(soldier, obj) < 350
 			then
 				result = true
 			end
