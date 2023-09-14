@@ -1,4 +1,4 @@
-local __version__ = 3.012
+local __version__ = 3.013
 local __name__ = "GGOrbwalker"
 
 
@@ -1982,6 +1982,7 @@ Data = {
 		Blitzcrank = { 1, true, 0.65 },
 		Brand = { 4, false, 0.625 },
 		Braum = { 1, true, 0.644 },
+		Briar = { 4, false, 0.664 },
 		Caitlyn = { 5, false, 0.681 },
 		Camille = { 3, true, 0.644 },
 		Cassiopeia = { 4, false, 0.647 },
