@@ -1,4 +1,4 @@
-local __version__ = 3.014
+local __version__ = 3.015
 local __name__ = "GGOrbwalker"
 
 
@@ -769,16 +769,9 @@ Cached = {
 	end,
 
 	AddCachedMinion = function(self, unit)
+		if not unit or not unit.valid or unit.dead then return false end
+
 		for _, u in pairs(self.ExtraUnits) do
-
-			local hov = Game.GetUnderMouseObject()
-			if(hov) then
-				if(hov.networkID == u.networkID) then
-					--print("Yes" .. GameTimer())
-					--print(hov.networkID)
-				end
-			end
-
 			if(u.networkID == unit.networkID) then
 				return false
 			end
@@ -5124,6 +5117,7 @@ Orbwalker = {
 		if not self.Menu.MovementEnabled:Value() then
 			return
 		end
+
 		if self.MovementEnabled and self:CanMove() then
 			if self.PostAttackBool and not Attack:IsActive(0.025) then
 				for i = 1, #self.OnPostAttackCb do
