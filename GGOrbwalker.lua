@@ -1,4 +1,4 @@
-local __version__ = 3.015
+local __version__ = 3.016
 local __name__ = "GGOrbwalker"
 
 
@@ -481,17 +481,17 @@ ChampionInfo = {
 
 	CustomIsTargetable = function(self, enemy, ally)
 		ally = ally or myHero
-				if  Buff:HasBuff(enemy, "gwenwuntargetabilitymanager") then
-					if not self:IsGwenMistValid() then
-						self:DetectGwenMist(enemy)
-					end
-					--print(GetDistance(self.GwenMistObject.pos, ally.pos))
-					if self.GwenMistObject and
-					GetDistance(self.GwenMistObject.pos,
-					ally.pos) >= 425 then
-						return false
-					end
-				end
+		if Buff:HasBuff(enemy, "gwenwuntargetabilitymanager") then
+			if not self:IsGwenMistValid() then
+				self:DetectGwenMist(enemy)
+			end
+			--print(GetDistance(self.GwenMistObject.pos, ally.pos))
+			if self.GwenMistObject and
+			 GetDistance(self.GwenMistObject.pos,
+			 ally.pos) >= 425 then
+				return false
+			end
+		end
 		return true
 	end,
 
@@ -694,7 +694,6 @@ Cached = {
 					self.ExtraUnitsSaved=true
 				else
 					self.ExtraUnits[i] = nil
-					table.remove(self.ExtraUnits, i)
 				end
 			end
 				self.ExtraUnitsSaved = false
@@ -769,14 +768,12 @@ Cached = {
 	end,
 
 	AddCachedMinion = function(self, unit)
-		if not unit or not unit.valid or unit.dead then return false end
-
 		for _, u in pairs(self.ExtraUnits) do
 			if(u.networkID == unit.networkID) then
 				return false
 			end
 		end
-		
+
 		table_insert(self.ExtraUnits, unit)
 	end,
 
@@ -1146,10 +1143,6 @@ Buff = {
 	end,
 
 	HasBuff = function(self, unit, name)
-		if name == nil then
-			print("HasBuff: name is nil")
-			return "ayaya"
-		end
 		name = name:lower()
 		local buffs = Cached:GetBuffs(unit)
 		local result = false
@@ -1299,11 +1292,6 @@ Damage = {
 		["Fizz"] = function(args)
 			if Buff:HasBuff(args.From, "fizzw") then
 				args.RawMagical = args.RawMagical+ (30 + 20 * args.From:GetSpellData(_W).level) +0.5 * args.From.ap
-			end
-		end,
-		["Kassadin"] = function(args)
-			if Game.CanUseSpell(1)==8 then
-				args.RawMagical = args.RawMagical+ (25 + 25 * args.From:GetSpellData(_W).level) +0.8 * args.From.ap
 			end
 		end,
 		["Graves"] = function(args)
@@ -1994,7 +1982,7 @@ Data = {
 		Blitzcrank = { 1, true, 0.65 },
 		Brand = { 4, false, 0.625 },
 		Braum = { 1, true, 0.644 },
-		Briar = { 4, true, 0.664 },
+		Briar = { 4, false, 0.664 },
 		Caitlyn = { 5, false, 0.681 },
 		Camille = { 3, true, 0.644 },
 		Cassiopeia = { 4, false, 0.647 },
@@ -2166,6 +2154,9 @@ Data = {
 		["CaitlynHeadshotMissile"] = true,
 		["GarenQAttack"] = true,
 		["KennenMegaProc"] = true,
+		["MordekaiserQAttack"] = true,
+		["MordekaiserQAttack1"] = true,
+		["MordekaiserQAttack2"] = true,
 		["QuinnWEnhanced"] = true,
 		["BlueCardPreAttack"] = true,
 		["RedCardPreAttack"] = true,
@@ -3117,7 +3108,7 @@ end
 Object = {
 
 	UndyingBuffs = {
-		--["zhonyasringshield"] = true,
+		["zhonyasringshield"] = true,
 		["kindredrnodeathbuff"] = true,
 		["ChronoShift"] = true,
 		["UndyingRage"] = true,
@@ -3143,7 +3134,6 @@ Object = {
 	IsNasus = myHero.charName == "Nasus",
 	OnLoad = function(self)
 		for i = 1, GameObjectCount() do
-
 			local object = GameObject(i)
 			if object and (object.type == Obj_AI_Barracks or object.type == Obj_AI_Nexus) then
 				if object.isEnemy then
@@ -3637,65 +3627,6 @@ Target = {
 		return (#a == 0 and nil or a[1])
 	end,
 
-	GetTargets = function(self, a, dmgType, isAttack)
-		a = a or 20000
-		dmgType = dmgType or 1
-		self.CurrentDamage = dmgType
-		if
-			self.MenuCheckSelected:Value()
-			and Object:IsValid(self.Selected)
-			and ChampionInfo:CustomIsTargetable(self.Selected)
-			and (Object:IsHeroImmortal(self.Selected, isAttack)==false or (Object.IsKindred and Orbwalker:KindredETarget(self.Selected)))
-		then
-			if type(a) == "number" then
-				if self.Selected.distance < a then
-					return {self.Selected}
-				end
-			else
-				local ok
-				for i = 1, #a do
-					if a[i].networkID == self.Selected.networkID then
-						ok = true
-						break
-					end
-				end
-				if ok then
-					return {self.Selected}
-				end
-			end
-			if self.MenuCheckSelectedOnly:Value() then
-				return nil
-			end
-		end
-		if type(a) == "number" then
-			a = Object:GetEnemyHeroes(a, false, true, isAttack)
-		end
-		for i = #a, 1, -1 do
-			if not ChampionInfo:CustomIsTargetable(a[i]) then
-				table_remove(a, i)
-			end
-		end
-		if self.CurrentSortMode == SORT_MOST_STACK then
-			local stackA = {}
-			for i = 1, #a do
-				local obj = a[i]
-				for j = 1, #self.ActiveStackBuffs do
-					if Buff:HasBuff(obj, self.ActiveStackBuffs[j]) then
-						table_insert(stackA, obj)
-					end
-				end
-			end
-			local sortMode = (#stackA == 0 and SORT_AUTO or SORT_MOST_STACK)
-			if sortMode == SORT_MOST_STACK then
-				a = stackA
-			end
-			table_sort(a, self.SortModes[sortMode])
-		else
-			table_sort(a, self.CurrentSort)
-		end
-		return (#a == 0 and nil or a)
-	end,
-
 	GetPriority = function(self, unit)
 		local name = unit.charName
 		if self.MenuPriorities[name] then
@@ -3922,7 +3853,6 @@ Health = {
 		end
 		for i = 1, #self.CachedMinions do
 			local obj = self.CachedMinions[i]
-
 			local handle = obj.handle
 			self.Handles[handle] = obj
 			local team = obj.team
@@ -3934,10 +3864,6 @@ Health = {
 					or (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(obj))
 				then
 					if (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(obj)) then
-					end
-
-					if obj.charName == "IllaoiMinion" then
-						local value= {LastHitable = true, Unkillable = false, AlmostLastHitable = false,PredictedHP = myHero.totalDamage, Minion = obj, AlmostAlmost = false, Time = GameTimer()}
 					end
 
 					table_insert(self.EnemyMinionsInAttackRange, obj)
@@ -3952,7 +3878,6 @@ Health = {
 						table_insert(Health.FarmMinions, value)
 						table_insert(self.EnemyMinionsInAttackRange, obj)
 					end
-
 					table_insert(self.JungleMinionsInAttackRange, obj)
 				end
 			end
@@ -5117,7 +5042,6 @@ Orbwalker = {
 		if not self.Menu.MovementEnabled:Value() then
 			return
 		end
-
 		if self.MovementEnabled and self:CanMove() then
 			if self.PostAttackBool and not Attack:IsActive(0.025) then
 				for i = 1, #self.OnPostAttackCb do
@@ -5232,7 +5156,7 @@ Callback.Add("Load", function()
 	local ticks = SDK.OnTick
 	local draws = SDK.OnDraw
 	local wndmsgs = SDK.OnWndMsg
-	if Game.Latency() < 300 then _G.LATENCY = Game.Latency() else _G.LATENCY = Menu.Main.Latency:Value() end
+	--if Game.Latency() < 300 then _G.LATENCY = Game.Latency() else _G.LATENCY = Menu.Main.Latency:Value() end
 
 	Callback.Add("Draw", function()
 		--[[local as = myHero.activeSpell
@@ -5262,7 +5186,7 @@ Callback.Add("Load", function()
 			print("DRAW")
 		end
 		drawTest = 1]]
-	
+
 		if GameIsChatOpen() then
 			LastChatOpenTimer = GetTickCount()
 		end
