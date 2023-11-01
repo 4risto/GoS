@@ -1,4 +1,4 @@
-local __version__ = 3.017
+local __version__ = 3.018
 local __name__ = "GGOrbwalker"
 
 
@@ -5068,7 +5068,7 @@ Orbwalker = {
 		if not self.Menu.AttackEnabled:Value() then
 			return
 		end
-		if self.AttackEnabled and unit and unit.valid and unit.visible then
+		if self.AttackEnabled and unit and unit.valid and unit.visible and unit.pos:To2D().onScreen then
 			self.LastTarget = unit
 			if self:CanAttack() then
 				local args = { Target = unit, Process = true }
