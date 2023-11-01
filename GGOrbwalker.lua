@@ -1,4 +1,4 @@
-local __version__ = 3.016
+local __version__ = 3.017
 local __name__ = "GGOrbwalker"
 
 
@@ -3625,6 +3625,65 @@ Target = {
 			table_sort(a, self.CurrentSort)
 		end
 		return (#a == 0 and nil or a[1])
+	end,
+	
+	GetTargets = function(self, a, dmgType, isAttack)
+		a = a or 20000
+		dmgType = dmgType or 1
+		self.CurrentDamage = dmgType
+		if
+			self.MenuCheckSelected:Value()
+			and Object:IsValid(self.Selected)
+			and ChampionInfo:CustomIsTargetable(self.Selected)
+			and (Object:IsHeroImmortal(self.Selected, isAttack)==false or (Object.IsKindred and Orbwalker:KindredETarget(self.Selected)))
+		then
+			if type(a) == "number" then
+				if self.Selected.distance < a then
+					return {self.Selected}
+				end
+			else
+				local ok
+				for i = 1, #a do
+					if a[i].networkID == self.Selected.networkID then
+						ok = true
+						break
+					end
+				end
+				if ok then
+					return {self.Selected}
+				end
+			end
+			if self.MenuCheckSelectedOnly:Value() then
+				return nil
+			end
+		end
+		if type(a) == "number" then
+			a = Object:GetEnemyHeroes(a, false, true, isAttack)
+		end
+		for i = #a, 1, -1 do
+			if not ChampionInfo:CustomIsTargetable(a[i]) then
+				table_remove(a, i)
+			end
+		end
+		if self.CurrentSortMode == SORT_MOST_STACK then
+			local stackA = {}
+			for i = 1, #a do
+				local obj = a[i]
+				for j = 1, #self.ActiveStackBuffs do
+					if Buff:HasBuff(obj, self.ActiveStackBuffs[j]) then
+						table_insert(stackA, obj)
+					end
+				end
+			end
+			local sortMode = (#stackA == 0 and SORT_AUTO or SORT_MOST_STACK)
+			if sortMode == SORT_MOST_STACK then
+				a = stackA
+			end
+			table_sort(a, self.SortModes[sortMode])
+		else
+			table_sort(a, self.CurrentSort)
+		end
+		return (#a == 0 and nil or a)
 	end,
 
 	GetPriority = function(self, unit)
