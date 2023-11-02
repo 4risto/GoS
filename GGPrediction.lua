@@ -1,4 +1,4 @@
-local Version = 1.53
+local Version = 1.54
 local Name = "GGPrediction"
 
 Callback.Add("Load", function()
