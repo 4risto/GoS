@@ -1,4 +1,4 @@
-local __version__ = 3.018
+local __version__ = 3.019
 local __name__ = "GGOrbwalker"
 
 
@@ -1963,16 +1963,16 @@ Data = {
 		end,
 	},
 
-	--12.21.1
+	--12.22
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
-		Ahri = { 4, false, 0.668 },
+		Ahri = { 4, false, 0.625 },
 		Akali = { 4, true, 0.625 },
 		Akshan = { 5, false, 0.638 },
 		Alistar = { 1, true, 0.625 },
 		Amumu = { 1, true, 0.736 },
-		Anivia = { 4, false, 0.625 },
-		Annie = { 4, false, 0.579 },
+		Anivia = { 4, false, 0.658 },
+		Annie = { 4, false, 0.610 },
 		Aphelios = { 5, false, 0.64 },
 		Ashe = { 5, false, 0.658 },
 		AurelionSol = { 4, false, 0.625 },
@@ -1996,7 +1996,7 @@ Data = {
 		Elise = { 3, false, 0.625 },
 		Evelynn = { 4, true, 0.667 },
 		Ezreal = { 5, false, 0.625 },
-		FiddleSticks = { 3, false, 0.625 },
+		FiddleSticks = { 3, false, 0.658 },
 		Fiora = { 3, true, 0.69 },
 		Fizz = { 4, true, 0.658 },
 		Galio = { 1, true, 0.625 },
@@ -2031,7 +2031,7 @@ Data = {
 		Kindred = { 4, false, 0.625 },
 		Kled = { 2, true, 0.625 },
 		KogMaw = { 5, false, 0.665 },
-		Leblanc = { 4, false, 0.625 },
+		Leblanc = { 4, false, 0.658 },
 		LeeSin = { 3, true, 0.651 },
 		Leona = { 1, true, 0.625 },
 		Lillia = { 4, false, 0.625 },
@@ -2074,7 +2074,7 @@ Data = {
 		Rengar = { 4, true, 0.667 },
 		Riven = { 4, true, 0.625 },
 		Rumble = { 4, true, 0.644 },
-		Ryze = { 4, false, 0.625 },
+		Ryze = { 4, false, 0.658 },
 		Samira = { 5, false, 0.658 },
 		Sejuani = { 2, true, 0.688 },
 		Senna = { 5, true, 0.625 },
@@ -2083,7 +2083,7 @@ Data = {
 		Shaco = { 4, true, 0.694 },
 		Shen = { 1, true, 0.751 },
 		Shyvana = { 2, true, 0.658 },
-		Singed = { 1, true, 0.613 },
+		Singed = { 1, true, 0.625 },
 		Sion = { 1, true, 0.679 },
 		Sivir = { 5, false, 0.625 },
 		Skarner = { 2, true, 0.625 },
@@ -2091,9 +2091,9 @@ Data = {
 		Soraka = { 3, false, 0.625 },
 		Swain = { 3, false, 0.625 },
 		Sylas = { 4, true, 0.645 },
-		Syndra = { 4, false, 0.625 },
+		Syndra = { 4, false, 0.658 },
 		TahmKench = { 1, true, 0.658 },
-		Taliyah = { 4, false, 0.625 },
+		Taliyah = { 4, false, 0.658 },
 		Talon = { 4, true, 0.625 },
 		Taric = { 1, true, 0.625 },
 		Teemo = { 4, false, 0.69 },
@@ -2108,7 +2108,7 @@ Data = {
 		Varus = { 5, false, 0.658 },
 		Vayne = { 5, false, 0.658 },
 		Veigar = { 4, false, 0.625 },
-		Velkoz = { 4, false, 0.625 },
+		Velkoz = { 4, false, 0.643 },
 		Vex = { 4, false, 0.669 },
 		Vi = { 2, true, 0.644 },
 		Viego = { 4, true, 0.658 },
@@ -2117,7 +2117,7 @@ Data = {
 		Volibear = { 2, true, 0.625 },
 		Warwick = { 2, true, 0.638 },
 		Xayah = { 5, false, 0.625 },
-		Xerath = { 4, false, 0.625 },
+		Xerath = { 4, false, 0.658 },
 		XinZhao = { 3, true, 0.645 },
 		Yasuo = { 4, true, 0.697 },
 		Yone = { 4, true, 0.625 },
@@ -2127,9 +2127,9 @@ Data = {
 		Zed = { 4, true, 0.651 },
 		Zeri = { 5, false, 0.658 },
 		Ziggs = { 4, false, 0.656 },
-		Zilean = { 3, false, 0.625 },
-		Zoe = { 4, false, 0.625 },
-		Zyra = { 2, false, 0.625 },
+		Zilean = { 3, false, 0.658 },
+		Zoe = { 4, false, 0.658 },
+		Zyra = { 2, false, 0.681 },
 	},
 
 	HeroSpecialMelees = {
@@ -3626,7 +3626,7 @@ Target = {
 		end
 		return (#a == 0 and nil or a[1])
 	end,
-	
+
 	GetTargets = function(self, a, dmgType, isAttack)
 		a = a or 20000
 		dmgType = dmgType or 1
