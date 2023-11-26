@@ -1,4 +1,4 @@
-local __version__ = 3.02
+local __version__ = 999
 local __name__ = "GGOrbwalker"
 
 
