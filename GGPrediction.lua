@@ -1,4 +1,4 @@
-local Version = 1.57
+local Version = 1.58
 local Name = "GGPrediction"
 
 Callback.Add("Load", function()
@@ -403,7 +403,47 @@ function Path:CutPath(path, distance)
 		distance = distance - dist
 	end
 	return #result > 0 and result or { path[#path] }
+end  
+function Path:CutPath2(path, distance, endPoint)
+    local result = {}
+    if distance <= 0 then
+        return path
+    end
+    for i = 1, #path - 1 do
+        local a, b = path[i], path[i + 1]
+        local dist = Math:GetDistance(a, b)
+        if dist > distance then
+            table_insert(result, Math:Extended(a, Math:Normalized(b, a), distance))
+            for j = i + 1, #path do
+                table_insert(result, path[j])
+            end
+			distance=0
+            break
+        end
+        distance = distance - dist
+    end
+    
+    -- Check if there's still some distance left and if endPoint is provided
+    if distance > 0 and endPoint then
+        local lastPoint = result[#result] or path[#path]
+        local distanceToEnd = Math:GetDistance(lastPoint, endPoint)
+        
+        -- If the distance to the endPoint is less than the remaining distance,
+        -- then just add the endPoint to the result
+        if distanceToEnd <= distance-5 then
+            table_insert(result, endPoint)
+        else
+            table_insert(result, Math:Extended(lastPoint, Math:Normalized(endPoint, lastPoint), distance-5))
+        end
+    end
+    
+    return #result > 0 and result or { path[#path] }
 end
+
+
+
+
+
 
 function Path:ReversePath(path)
 	local result = {}
@@ -600,12 +640,13 @@ Collision = {}
 	local objects = {}
 	for i, colType in pairs(collisionTypes) do
 		if colType == COLLISION_MINION then
-			for k = 1, Game.MinionCount() do
-				local unit = Game.Minion(k)
+			local dCheck = Math:GetDistance(source, castPos)
+			local minions = _G.SDK.ObjectManager:GetEnemyMinions(dCheck)
+			for k = 1, #minions do
+				local unit = minions[k]
 				if
 					unit.networkID ~= skipID
 					and ObjectManager:IsValid(unit)
-					and unit.isEnemy
 					and Math:GetDistance(source, Math:Get2D(unit.pos)) < 2000
 				then
 					table_insert(objects, unit)
@@ -716,6 +757,7 @@ function Collision:GetCollision2(source, castPos, speed, delay, radius, collisio
 			collisionCount = collisionCount + 1
 		end
 	end
+	table.sort(collisionObjects, function(a, b) return GetDistance(a.pos, source) < GetDistance(b.pos, source) end)
 	return isWall, collisionObjects, collisionCount
 end
 Prediction = {}
@@ -759,23 +801,32 @@ function Prediction:GetPrediction(target, source, speed, delay, radius, isHero)
 		local pos = Math:Get2D(target.pos)
 		return pos, pos, delay + Math:GetDistance(pos, source) / speed
 	end
-	if wp.dashing then
+ 	if wp.dashing then
 		local pos = wp.pos
 		return pos, pos, delay + Math:GetDistance(pos, source) / speed
-	end
+	end 
 	local delay2 = delay + Menu:GetLatency() + Menu:GetExtraDelay()
 	if speed == math_huge then
 		local path = Path:CutPath(wp.path, ms * delay2)
 		local path2 = Path:CutPath(wp.path, (ms * delay2) - radius)
 		return path[1], path2[1], delay
 	end
+	--print(GetDistance(wp.path[2],target.pos))
 	local path, time = Path:GetPredictedPath(source, speed, ms, Path:CutPath(wp.path, ms * delay2))
 	if path then
-		local path2 = Path:CutPath(Path:ReversePath(path), radius)
-		return path[#path], path2[1], delay + Math:GetDistance(path[#path], source) / speed
+
+		local path2 = Path:CutPath2(Path:ReversePath(path), radius, target.pos)
+		--[[ Draw.Circle(Vector(path[#path]), 50, 4, Draw.Color(255, 255, 255, 255))
+		local castps=path2[1]
+		castps.y=target.y
+		Draw.Circle(Vector(castps), 50, 3, Draw.Color(255, 55, 255, 255)) ]]
+		return path[#path], path2[1], delay + Math:GetDistance(path2[1], source) / speed
 	end
 	local p = wp.path[#wp.path]
+
+	--Draw.Circle(Vector(p), 50, 3, Draw.Color(255, 55, 50, 255))
 	return p, p, delay + Math:GetDistance(p, source) / speed
+	--return nil, nil, -1
 end
 function Prediction:GetPrediction2(target, source, speed, delay, radius, isHero)
 	local id, ms = target.networkID, target.ms
@@ -1011,7 +1062,11 @@ function Prediction:SpellPrediction(args)
 			return false
 		end
 
-		if os.clock() - self.StartTime > 0.03 then
+--[[ 		if os.clock() - self.StartTime > 0.03 then
+			return false
+		end ]]
+		if os.clock() - self.StartTime > 0.05 then
+			--print("PREDICTION TIMER")
 			return false
 		end
 		return true
