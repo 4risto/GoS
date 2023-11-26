@@ -1,4 +1,4 @@
-local __version__ = 3.019
+local __version__ = 3.02
 local __name__ = "GGOrbwalker"
 
 
@@ -648,6 +648,9 @@ end
 Cached = {
 
 	Minions = {},
+	TempCachedMinions = {},
+	TempCachedWards = {},
+	TempCachedTurrets = {},
 	ExtraHeroes = {},
 	ExtraUnits = {},
 	Turrets = {},
@@ -660,6 +663,31 @@ Cached = {
 	ExtraUnitsSaved = false,
 	TurretsSaved = false,
 	WardsSaved = false,
+	TempCacheBuffer = GameTimer(),
+	TempCacheTimeout = 3,
+
+	WndMsg = function(self, msg, wParam)
+		local oKeys = {}
+		--Fetch hotkeys for orbwalker modes
+		if(Orbwalker.MenuKeys) then
+			oKeys = {
+				Orbwalker.MenuKeys[ORBWALKER_MODE_COMBO][1]:Key(),
+				Orbwalker.MenuKeys[ORBWALKER_MODE_FLEE][1]:Key(),
+				Orbwalker.MenuKeys[ORBWALKER_MODE_HARASS][1]:Key(),
+				Orbwalker.MenuKeys[ORBWALKER_MODE_LANECLEAR][1]:Key(),
+				Orbwalker.MenuKeys[ORBWALKER_MODE_JUNGLECLEAR][1]:Key(),
+				Orbwalker.MenuKeys[ORBWALKER_MODE_LASTHIT][1]:Key(),
+			}
+		end
+
+		--If we press an orbwalker hotkey, reset our buffer so we immediately cache new minions (we only do this once per button press to prevent lag)
+		for _, key in pairs(oKeys) do
+			if (wParam == key) then
+				self.TempCacheBuffer = GameTimer()
+				return
+			end
+		end
+	end,
 
 	Reset = function(self)
 		for k in pairs(self.Buffs) do
@@ -781,10 +809,11 @@ Cached = {
 		if not self.MinionsSaved then
 			self.MinionsSaved = true
 			self.ExtraUnitsSaved = true
-			local count = GameMinionCount()
+			local cachedMinions = self:FetchCachedMinions()
+			local count = #cachedMinions
 			if count and count > 0 and count < 1000 then
 				for i = 1, count do
-					local o = GameMinion(i)
+					local o = cachedMinions[i]
 					if o and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
 						table_insert(self.Minions, o)
 					end
@@ -799,10 +828,30 @@ Cached = {
 		return self.Minions
 	end,
 
+	FetchCachedMinions = function (self)
+		if self.TempCacheBuffer < GameTimer() then
+			self.TempCachedMinions = {}
+			local count = GameMinionCount()
+			if count and count > 0 and count < 1000 then
+				for i = 1, count do
+					local o = GameMinion(i)
+					if o and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
+						table_insert(self.TempCachedMinions, o)
+					end
+				end
+			end
+			self.TempCacheBuffer = self.TempCacheBuffer + self.TempCacheTimeout
+			return self.TempCachedMinions
+		end
+
+		return self.TempCachedMinions
+	end,
+
 	GetTurrets = function(self)
 		if not self.TurretsSaved then
 			self.TurretsSaved = true
-			local count = GameTurretCount()
+			local cachedTurrets = self:FetchCachedTurrets()
+			local count = #cachedTurrets
 			if count and count > 0 and count < 1000 then
 				for i = 1, count do
 					local o = GameTurret(i)
@@ -815,13 +864,34 @@ Cached = {
 		return self.Turrets
 	end,
 
+	FetchCachedTurrets = function (self)
+		if self.TempCacheBuffer < GameTimer() then
+			self.TempCachedTurrets = {}
+			local count = GameTurretCount()
+			if count and count > 0 and count < 1000 then
+				for i = 1, count do
+					local o = GameTurret(i)
+					if o and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
+						table_insert(self.TempCachedTurrets, o)
+					end
+				end
+			end
+			self.TempCacheBuffer = self.TempCacheBuffer + self.TempCacheTimeout
+			return self.TempCachedTurrets
+		end
+
+		return self.TempCachedTurrets
+	end,
+
 	GetWards = function(self)
 		if not self.WardsSaved then
 			self.WardsSaved = true
-			local count = GameWardCount()
+
+			local cachedWards = self:FetchCachedWards()
+			local count = #cachedWards
 			if count and count > 0 and count < 1000 then
 				for i = 1, count do
-					local o = GameWard(i)
+					local o = cachedWards[i]
 					if o and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
 						table_insert(self.Wards, o)
 					end
@@ -829,6 +899,25 @@ Cached = {
 			end
 		end
 		return self.Wards
+	end,
+
+	FetchCachedWards = function (self)
+		if self.TempCacheBuffer < GameTimer() then
+			self.TempCachedWards = {}
+			local count = GameWardCount()
+			if count and count > 0 and count < 1000 then
+				for i = 1, count do
+					local o = GameWard(i)
+					if o and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
+						table_insert(self.TempCachedWards, o)
+					end
+				end
+			end
+			self.TempCacheBuffer = self.TempCacheBuffer + self.TempCacheTimeout
+			return self.TempCachedWards
+		end
+
+		return self.TempCachedWards
 	end,
 
 	GetBuffs = function(self, o)
@@ -1292,6 +1381,11 @@ Damage = {
 		["Fizz"] = function(args)
 			if Buff:HasBuff(args.From, "fizzw") then
 				args.RawMagical = args.RawMagical+ (30 + 20 * args.From:GetSpellData(_W).level) +0.5 * args.From.ap
+			end
+		end,
+		["Kassadin"] = function(args)
+			if Game.CanUseSpell(1)==8 then
+				args.RawMagical = args.RawMagical+ (25 + 25 * args.From:GetSpellData(_W).level) +0.8 * args.From.ap
 			end
 		end,
 		["Graves"] = function(args)
@@ -3626,7 +3720,7 @@ Target = {
 		end
 		return (#a == 0 and nil or a[1])
 	end,
-
+	
 	GetTargets = function(self, a, dmgType, isAttack)
 		a = a or 20000
 		dmgType = dmgType or 1
@@ -3903,6 +3997,7 @@ Health = {
 				table_insert(self.CachedMinions, obj)
 			end
 		end
+
 		local cachedwards = Cached:GetWards()
 		for i = 1, #cachedwards do
 			local obj = cachedwards[i]
@@ -3910,6 +4005,7 @@ Health = {
 				table_insert(self.CachedWards, obj)
 			end
 		end
+
 		for i = 1, #self.CachedMinions do
 			local obj = self.CachedMinions[i]
 			local handle = obj.handle
@@ -3923,6 +4019,10 @@ Health = {
 					or (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(obj))
 				then
 					if (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(obj)) then
+					end
+
+					if obj.charName == "IllaoiMinion" then
+						local value= {LastHitable = true, Unkillable = false, AlmostLastHitable = false,PredictedHP = myHero.totalDamage, Minion = obj, AlmostAlmost = false, Time = GameTimer()}
 					end
 
 					table_insert(self.EnemyMinionsInAttackRange, obj)
@@ -3941,6 +4041,7 @@ Health = {
 				end
 			end
 		end
+		
 		for i = 1, #self.CachedWards do
 			local obj = self.CachedWards[i]
 			if IsInRange(myHero, obj, attackRange + 35) then
@@ -4012,7 +4113,6 @@ Health = {
 				)
 			)
 		end
-
 		-- SPELLS
 		for i = 1, #self.Spells do
 			self.Spells[i]:Tick()
@@ -4494,6 +4594,9 @@ do
 			if Cursor.Step > 0 then
 				return false
 			end
+
+			--if not (Vector(pos):To2D().onScreen) then print("failure"); return false end
+			
 			if not b and a.pos then
 				Cursor:Add(key, a)
 			else
@@ -5297,6 +5400,7 @@ Callback.Add("Load", function()
 		Data:WndMsg(msg, wParam)
 		Spell:WndMsg(msg, wParam)
 		Target:WndMsg(msg, wParam)
+		Cached:WndMsg(msg, wParam)
 		for i = 1, #wndmsgs do
 			wndmsgs[i](msg, wParam)
 		end
