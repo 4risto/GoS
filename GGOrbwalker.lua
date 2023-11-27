@@ -1,4 +1,4 @@
-local __version__ = 3.021
+local __version__ = 3.023
 local __name__ = "GGOrbwalker"
 
 
@@ -663,7 +663,7 @@ Cached = {
 	ExtraUnitsSaved = false,
 	TurretsSaved = false,
 	WardsSaved = false,
-	TempCacheBuffer = GameTimer(),
+	TempCacheBuffer = {m = GameTimer(), w = GameTimer(), t = GameTimer()},
 	TempCacheTimeout = 3,
 
 	WndMsg = function(self, msg, wParam)
@@ -683,7 +683,7 @@ Cached = {
 		--If we press an orbwalker hotkey, reset our buffer so we immediately cache new minions (we only do this once per button press to prevent lag)
 		for _, key in pairs(oKeys) do
 			if (wParam == key) then
-				self.TempCacheBuffer = GameTimer()
+				self.TempCacheBuffer = {m = GameTimer(), w = GameTimer(), t = GameTimer()}
 				return
 			end
 		end
@@ -829,7 +829,7 @@ Cached = {
 	end,
 
 	FetchCachedMinions = function (self)
-		if self.TempCacheBuffer < GameTimer() then
+		if self.TempCacheBuffer.m < GameTimer() then
 			self.TempCachedMinions = {}
 			local count = GameMinionCount()
 			if count and count > 0 and count < 1000 then
@@ -840,7 +840,7 @@ Cached = {
 					end
 				end
 			end
-			self.TempCacheBuffer = self.TempCacheBuffer + self.TempCacheTimeout
+			self.TempCacheBuffer.m = self.TempCacheBuffer.m + self.TempCacheTimeout
 			return self.TempCachedMinions
 		end
 
@@ -854,7 +854,7 @@ Cached = {
 			local count = #cachedTurrets
 			if count and count > 0 and count < 1000 then
 				for i = 1, count do
-					local o = GameTurret(i)
+					local o = cachedTurrets[i]
 					if o and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
 						table_insert(self.Turrets, o)
 					end
@@ -865,7 +865,7 @@ Cached = {
 	end,
 
 	FetchCachedTurrets = function (self)
-		if self.TempCacheBuffer < GameTimer() then
+		if self.TempCacheBuffer.t < GameTimer() then
 			self.TempCachedTurrets = {}
 			local count = GameTurretCount()
 			if count and count > 0 and count < 1000 then
@@ -876,7 +876,7 @@ Cached = {
 					end
 				end
 			end
-			self.TempCacheBuffer = self.TempCacheBuffer + self.TempCacheTimeout
+			self.TempCacheBuffer.t = self.TempCacheBuffer.t + self.TempCacheTimeout
 			return self.TempCachedTurrets
 		end
 
@@ -902,7 +902,7 @@ Cached = {
 	end,
 
 	FetchCachedWards = function (self)
-		if self.TempCacheBuffer < GameTimer() then
+		if self.TempCacheBuffer.w < GameTimer() then
 			self.TempCachedWards = {}
 			local count = GameWardCount()
 			if count and count > 0 and count < 1000 then
@@ -913,7 +913,7 @@ Cached = {
 					end
 				end
 			end
-			self.TempCacheBuffer = self.TempCacheBuffer + self.TempCacheTimeout
+			self.TempCacheBuffer.w = self.TempCacheBuffer.w + self.TempCacheTimeout
 			return self.TempCachedWards
 		end
 
