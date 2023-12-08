@@ -1,4 +1,4 @@
-local __version__ = 3.023
+local __version__ = 3.024
 local __name__ = "GGOrbwalker"
 
 
@@ -2007,6 +2007,9 @@ Data = {
 		["Anivia"] = function()
 			return 1600
 		end,
+		["Hwei"] = function()
+			return 2800
+		end,
 		["Illaoi"] = function()
 			if Buff:HasBuff(myHero, "IllaoiW") then
 				return 1600
@@ -2102,6 +2105,7 @@ Data = {
 		Gwen = { 4, true, 0.69 },
 		Hecarim = { 2, true, 0.67 },
 		Heimerdinger = { 3, false, 0.625 },
+		Hwei = { 4, false, 0.69 },
 		Illaoi = { 3, true, 0.625 },
 		Irelia = { 3, true, 0.656 },
 		Ivern = { 1, true, 0.644 },
