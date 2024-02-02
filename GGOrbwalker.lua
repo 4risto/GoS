@@ -1,4 +1,4 @@
-local __version__ = 3.025
+local __version__ = 3.026
 local __name__ = "GGOrbwalker"
 
 
@@ -2231,6 +2231,7 @@ Data = {
 		Sion = { 1, true, 0.679 },
 		Sivir = { 5, false, 0.625 },
 		Skarner = { 2, true, 0.625 },
+		Smolder = { 4, false, 0.638 },
 		Sona = { 3, false, 0.644 },
 		Soraka = { 3, false, 0.625 },
 		Swain = { 3, false, 0.625 },
