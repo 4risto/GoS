@@ -1,4 +1,4 @@
-local __version__ = 3.026
+local __version__ = 3.027
 local __name__ = "GGOrbwalker"
 
 
@@ -9,7 +9,6 @@ end
 _G.GGUpdate = {}
 do
 	function GGUpdate:__init()
-
 		self.Callbacks = {}
 	end
 
@@ -80,12 +79,13 @@ do
 				if GetTickCount() > self.ScriptTimer + 1 then
 					self.Step = 0
 					print(
+						"| "..
 						self.ScriptName
-							.. " - new update found! ["
+							.. "| - new update found! ["
 							.. tostring(self.Version)
 							.. " -> "
 							.. self.NewVersion
-							.. "] Please 2xf6!"
+							.. "]"
 					)
 				end
 				return
@@ -97,7 +97,8 @@ do
 			if self.Step == 4 then
 				if GetTickCount() > self.ScriptTimer + 1 then
 					self.Step = 0
-					print(self.ScriptName .. " - downloaded! Please 2xf6!")
+					print("*WARNING* New | " .. self.ScriptName .. " | - [ver. " .. tostring(self.NewVersion) .. "] Downloaded - Please RELOAD with [ F6 ]")
+					--print(self.ScriptName .. " - downloaded! Please 2xf6!")
 				end
 			end
 		end
@@ -601,7 +602,7 @@ FlashHelper = {
 			and not GameIsChatOpen()
 			and GameIsOnTop()
 		then
-			print("Flash Helper | Flashing!")
+			--print("Flash Helper | Flashing!")
 			self.Timer = GetTickCount()
 			Control.Flash()
 		end
@@ -795,7 +796,7 @@ Cached = {
 	end,
 
 	AddCachedMinion = function(self, unit)
-		
+
 		for _, u in pairs(self.ExtraUnits) do
 			if(u.networkID == unit.networkID) then
 			--	print("AddCachedMinion",Game.Timer())
@@ -1079,7 +1080,7 @@ Menu = {
         self.Main.Drawings:MenuElement({id = 'Enabled', name = 'Enabled', value = true})
         self.Main.Drawings:MenuElement({id = 'Cursor', name = 'Cursor', value = true})
         self.Main.Drawings:MenuElement({id = 'Range', name = 'AutoAttack Range', value = true})
-        self.Main.Drawings:MenuElement({id = 'RangeAlpha', name = 'AutoAttack Range Alpha', value = 58, min = 0, max = 100, identifier = "%", callback = 
+        self.Main.Drawings:MenuElement({id = 'RangeAlpha', name = 'AutoAttack Range Alpha', value = 58, min = 0, max = 100, identifier = "%", callback =
 		function ()
 			if(Color) then
 				if(self.Main.Drawings) then
@@ -1120,7 +1121,7 @@ Menu:CreateGeneral()
 _G.LATENCY = Game.Latency() < 300 and Game.Latency() or Menu.Main.Latency:Value()
 
 local rangeAlpha = 155
-if(Menu.Main.Drawings.RangeAlpha) then
+if (Menu.Main.Drawings.RangeAlpha) then
 	rangeAlpha = (Menu.Main.Drawings.RangeAlpha:Value())
 end
 
@@ -1990,12 +1991,12 @@ Data = {
 			return (name == "RenataQ" or name == "RenataE" or name == "RenataR")
 				and spell.castEndTime - Game.Timer() > 0.05
 		end,
-		
+
 		["Caitlyn"] = function(spell)
 			local name = spell.name
 			if (name == "CaitlynQ" or name == "CaitlynE" or name == "CaitlynW" or name == "CaitlynR")and spell.endTime - Game.Timer() > 0.04 then
 				--print(Game.Timer())
-			end 
+			end
 			return (name == "CaitlynQ" or name == "CaitlynE" or name == "CaitlynW" or name == "CaitlynR")and spell.endTime - Game.Timer() > 0.04
 		end,
 	},
@@ -2346,7 +2347,7 @@ Data = {
 				)
 			then --Buff:GetBuffDuration(enemy, "eternals_caitlyneheadshottracker") > 0.75
 				--print(Game.Timer())
-			
+
 				--	print(Buff:GetBuffDuration(target, "caitlynwsight"), Buff:HasBuff(target, "eternals_caitlyneheadshottracker"))
 				return 425
 			end
@@ -2376,7 +2377,7 @@ Data = {
 		["Kindred"] = {{ Slot = _Q, Key = HK_Q }},
 		["KSante"] = {
 			{ Slot = _E, Key = HK_E, CanCancel = true, OnCast = true },
-			{ Slot = _Q, Key = HK_Q }  
+			{ Slot = _Q, Key = HK_Q }
 		},
 		["Leona"] = {{ Slot = _Q, Key = HK_Q }},
 		["Lucian"] = {{ Slot = _E, Key = HK_E, OnCast = true, CanCancel = true, Buff = { ["lucianpassivebuff"] = true }}},
@@ -2403,25 +2404,25 @@ Data = {
 		["XinZhao"] = {{ Slot = _Q, Key = HK_Q }},
 		["Yorick"] = {{ Slot = _Q, Key = HK_Q }},
 	},
-	
+
 
 	WndMsg = function(self, msg, wParam)
 		if not self.AttackResets then
 			return
 		end
-	
+
 		local championAttackResets = self.AttackResets[myHero.charName]
 		if not championAttackResets then
 			return
 		end
-	
+
 		for _, attackReset in ipairs(championAttackResets) do
 			local AttackResetKey = attackReset.Key
 			local AttackResetActiveSpell = attackReset.ActiveCheck
 			local AttackResetIsReady = attackReset.ReadyCheck
 			local AttackResetName = attackReset.Name
 			local AttackResetSpellName = attackReset.SpellName
-	
+
 			if
 				not self.AttackResetSuccess
 				and not Control.IsKeyDown(8)
@@ -2476,7 +2477,7 @@ Data = {
 			end
 		end
 	end,
-	
+
 
 	IdEquals = function(self, a, b)
 		if a == nil or b == nil then
@@ -3092,7 +3093,7 @@ SummonerSpell = {
 			if buff.duration >= menuDuration and menuBuffs[buff.type] then
 				-- Calculate the time when the spell should be cast
 				local castTime = buff.startTime + self.MenuCleanse.Delay:Value()
-		
+
 				-- Check if the current time has exceeded the calculated cast time
 				if Game.Timer() > castTime then
 					Control.CastSpell(hk)
@@ -3101,7 +3102,7 @@ SummonerSpell = {
 				end
 			end
 		end
-		
+
 		if not casted and self.MenuCleanseBuffs.Slow:Value() then
 			local ms = myHero.ms
 			for i = 1, #buffs do
@@ -3846,7 +3847,7 @@ Target = {
 			local enemy = enemies[i]
 			--print(myHero.range)
 			local extraRange = enemy.boundingRadius
-			if	Object.IsCaitlyn then		
+			if	Object.IsCaitlyn then
 				if _G.CTRLCait==nil	and (
 						Buff:GetBuffDuration(enemy, "caitlynwsight") > 0.75
 						or Buff:HasBuff(enemy, "eternals_caitlyneheadshottracker")
@@ -3895,7 +3896,7 @@ Target.SortModes = {
 		local distmultiplier=Menu.Target.distmultiplier:Value()
 		local aMultiplier = 1.75 - (Target:GetPriority(a) * 0.15) +(distmultiplier*(math.max(math.min(a.distance,maxdist),mindist)/math.max(math.min(b.distance,maxdist),mindist)))
 		local bMultiplier = 1.75 - (Target:GetPriority(b) * 0.15) +(distmultiplier*(math.max(math.min(b.distance,maxdist),mindist)/math.max(math.min(a.distance,maxdist),mindist)))
-		
+
 		local aDef, bDef = 0, 0
 		if Target.CurrentDamage == DAMAGE_TYPE_MAGICAL then
 			local magicPen, magicPenPercent = myHero.magicPen, myHero.magicPenPercent
@@ -3909,8 +3910,8 @@ Target.SortModes = {
 		return (a.health * aMultiplier * ((100 + aDef) / 100)) - a.ap - (a.totalDamage * a.attackSpeed * 2)
 			< (b.health * bMultiplier * ((100 + bDef) / 100)) - b.ap - (b.totalDamage * b.attackSpeed * 2)
 	end,
-	
-	
+
+
 
 	[SORT_CLOSEST] = function(a, b)
 		return a.distance < b.distance
@@ -4083,7 +4084,7 @@ Health = {
 
 					table_insert(self.EnemyMinionsInAttackRange, obj)
 				end
-		
+
 			elseif team == Data.JungleTeam then
 				if
 					IsInRange(myHero, obj, attackRange + obj.boundingRadius)
@@ -4660,22 +4661,22 @@ do
 			if not b then
 				if not (Vector(pos):To2D().onScreen) then return false end
 			end
-
-			if a and (a.x or a[1]) then
-				if (GetDistance(Game.mousePos(), pos)) < 2 then
-					--return false
-				end	
+			if not a then --nil check first since block does nothing -Imp 240313
+				CastKey(key)
+				return true
 			end
-			
+			if a and (a.x or a[1]) then
+				if GetDistance(Game.mousePos(), pos) < 2 then
+					--What's this for? -Imp
+					--return false
+				end
+			end
+
 			if not b and a.pos then
 				Cursor:Add(key, a)
 			else
 				Cursor:Add(key, pos)
 			end
-			return true
-		end
-		if not a then
-			CastKey(key)
 			return true
 		end
 		return false
@@ -5391,9 +5392,12 @@ _G.SDK = {
 		return false
 	end,
 }
+print("| " .. __name__ .. " | [SDK] - [ver."..__version__.. "] Loaded")
 
---[[tickTest = 2
-drawTest = 2]]
+--[[ Test
+tickTest = 2
+drawTest = 2
+]]
 Callback.Add("Load", function()
 	ChampionInfo:OnLoad()
 
@@ -5432,7 +5436,7 @@ Callback.Add("Load", function()
 			print("DRAW")
 		end
 		drawTest = 1]]
-	
+
 		if GameIsChatOpen() then
 			LastChatOpenTimer = GetTickCount()
 		end
@@ -5443,9 +5447,6 @@ Callback.Add("Load", function()
 		Action:OnTick()
 		Attack:OnTick()
 		Orbwalker:OnTick()
-		for i = 1, #ticks do
-			ticks[i]()
-		end
 		if Menu.Main.Drawings.Enabled:Value() then
 			Target:OnDraw()
 			Cursor:OnDraw()
@@ -5471,7 +5472,10 @@ Callback.Add("Load", function()
 		if GameIsChatOpen() then
 			LastChatOpenTimer = GetTickCount()
 		end
+		for i = 1, #ticks do --why was this in draw? -Imp
 
+			ticks[i]()
+		end
 		Cached:Reset()
 		ChampionInfo:OnTick()
 		SummonerSpell:OnTick()
