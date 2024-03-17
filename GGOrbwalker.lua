@@ -1,4 +1,4 @@
-local __version__ = 3.031
+local __version__ = 3.032
 local __name__ = "GGOrbwalker"
 
 
@@ -3757,10 +3757,13 @@ Target = {
 			and (Object:IsHeroImmortal(self.Selected, isAttack) == false or (Object.IsKindred and Orbwalker:KindredETarget(self.Selected)))
 		then
 			if type(a) == "number" then
+				--print("# type(a)"..type(a))
 				if self.Selected.distance < a then
 					return self.Selected
 				end
 			else
+				--[ADD]?; a = Object:GetEnemyHeroes(a, false, true, isAttack)
+				--print("else type(a)"..type(a))
 				local ok
 				for i = 1, #a do
 					if a[i].networkID == self.Selected.networkID then
