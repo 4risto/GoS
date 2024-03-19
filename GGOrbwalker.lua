@@ -1,4 +1,4 @@
-local __version__ = 3.032
+local __version__ = 3.033
 local __name__ = "GGOrbwalker"
 
 
@@ -1399,15 +1399,11 @@ Damage = {
 		["Zeri"] = function(args)
 			args.RawTotal = args.RawTotal * 0
 			args.RawPhysical = args.RawTotal
-			local small = { 15, 16, 17, 18, 19, 20, 22, 23, 24, 26, 27, 29, 31, 32, 34, 36, 38, 40 }
-			local big = { 90, 94, 99, 104, 109, 115, 121, 127, 133, 140, 146, 153, 160, 168, 175, 183, 191, 200 }
-
+			local level = args.From.levelData.lvl
 			if Buff:HasBuff(myHero, "zeriqpassiveready") then
-				args.RawMagical = big[math_max(math_min(args.From.levelData.lvl, 18), 1)] + args.From.ap * 0.8
-				-- print("zeri boosted")
+				args.RawMagical = 90 + (110 / 17) * (level - 1) * (0.7025 + 0.0175 * (level - 1)) + args.From.ap * 1.1
 			else
-				args.RawMagical = small[math_max(math_min(args.From.levelData.lvl, 18), 1)] + args.From.ap * 0.04
-				-- print("zeri normal ")
+				args.RawMagical = 10 + (15 / 17) * (level - 1) * (0.7025 + 0.0175 * (level-1)) + args.From.ap * 0.03
 			end
 		end,
 		["Caitlyn"] = function(args)
@@ -1596,8 +1592,17 @@ Damage = {
 
 	HeroPassiveDamage = {
 		["Zeri"] = function(args)
-			if args.Target.health < (args.Target.maxHealth * 0.35) then
-				args.RawMagical = args.RawMagical * 4
+			local level = args.From.levelData.lvl
+			if Buff:HasBuff(myHero, "zeriqpassiveready") then
+				args.RawMagical = args.RawMagical
+					+ (1 + (14 / 17) * (level - 1) * (0.7025 + 0.0175 * (level - 1))) / 100 * args.Target.maxHealth
+			else
+				if args.Target.health < 60 + (90 / 17) * (level - 1) + args.From.ap * 0.18 then
+					args.RawMagical = 60 + (90 / 17) * (level - 1) + args.From.ap * 0.18 --args.RawMagical * 6
+				end
+			end
+			if args.Target.team == 300 then
+				args.RawMagical = math.min(300, args.RawMagical)
 			end
 		end,
 		["Jhin"] = function(args)
