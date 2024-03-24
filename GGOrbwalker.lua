@@ -1,4 +1,4 @@
-local __version__ = 3.033
+local __version__ = 3.034
 local __name__ = "GGOrbwalker"
 
 
@@ -4458,6 +4458,7 @@ Health = {
 			end
 		end
 		-- under turret, turret attackdata: 1.20048 0.16686 1200
+		-- lates tturret attackdata: ["animationTime"] = 1.6000000238419, ["windUpTime"] = 0.22240000963211, ["projectileSpeed"] = 1200
 		if
 			turretAttacked
 			or (turretAttack and turretAttack.target == handle)
@@ -4473,8 +4474,8 @@ Health = {
 			nearTurret = true
 			isTurretTarget = turretAttack.target == handle
 			maxHP = target.maxHealth
-			startTime = turretAttack.endTime - 1.20048
-			windUpTime = 0.16686
+			startTime = turretAttack.endTime - 1.6
+			windUpTime = 0.2224
 			flyTime = GetDistance(self.AllyTurret, target) / 1200
 			turretDamage = Damage:GetAutoAttackDamage(self.AllyTurret, target)
 			turretHits = 1
