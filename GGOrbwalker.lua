@@ -1,4 +1,4 @@
-local __version__ = 3.035
+local __version__ = 3.036
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -4210,7 +4210,7 @@ Health = {
 		windup = Attack:GetWindup()
 		time = windup -
 		self.ExtraFarmDelay:Value() *
-		0.001                                         --why is this -getlatency here? i isbjorn might try removing it -- - Data:GetLatency()
+		0.001  --why is this -getlatency here? i isbjorn might try removing it -- - Data:GetLatency()
 		anim = Attack:GetAnimation()
 		for i = 1, #self.EnemyMinionsInAttackRange do
 			local target = self.EnemyMinionsInAttackRange[i]
@@ -4490,25 +4490,28 @@ Health = {
 					Data:IsInAutoAttackRange(self.AllyTurret, target)
 					or Data:IsInAutoAttackRange2(self.AllyTurret, target)
 				)
-			)
+			) --and turretAttack
 		then
 			local nearTurret, isTurretTarget, maxHP, startTime, windUpTime, flyTime, turretDamage, turretHits
 			nearTurret = true
-			isTurretTarget = turretAttack.target == handle
-			maxHP = target.maxHealth
-			startTime = (turretAttack.endTime - turretAttack.animationTime) --turretAttack.endTime - 1.20048
-			windUpTime = (turretAttack.attackData and turretAttack.attackData.windUpTime or 0.22240000963211) --0.16686
-			flyTime = GetDistance(self.AllyTurret, target) / (turretAttack.attackData.projectileSpeed or 1200)--1200
-			turretDamage = Damage:GetAutoAttackDamage(self.AllyTurret, target)
-			turretHits = 1
-			while maxHP > turretHits * turretDamage do
-				turretHits = turretHits + 1
-				if turretHits > 10 then
-					--print("ERROR TURRETHITS")
-					break
+			turretAttack = self.AllyTurret ~= nil and self.AllyTurret.attackData or nil
+			if turretAttack then
+				isTurretTarget = turretAttack.target == handle
+				maxHP = target.maxHealth
+				startTime = (turretAttack.endTime - turretAttack.animationTime) --turretAttack.endTime - 1.20048
+				windUpTime = (turretAttack.attackData and turretAttack.attackData.windUpTime or 0.22240000963211) --0.16686
+				flyTime = GetDistance(self.AllyTurret, target) / (turretAttack.attackData.projectileSpeed or 1200)--1200
+				turretDamage = Damage:GetAutoAttackDamage(self.AllyTurret, target)
+				turretHits = 1
+				while maxHP > turretHits * turretDamage do
+					turretHits = turretHits + 1
+					if turretHits > 10 then
+						--print("ERROR TURRETHITS")
+						break
+					end
 				end
-			end
 			turretHits = turretHits - 1
+			end
 			return {
 				LastHitable = lastHitable,
 				Unkillable = unkillable,
@@ -4616,7 +4619,7 @@ Health = {
 		for i = 1, #self.FarmMinions do
 			local minion = self.FarmMinions[i]
 			if Data:IsInAutoAttackRange(myHero, minion.Minion) or (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(minion.Minion)) then
-				if minion.PredictedHP < num and not minion.AlmostAlmost and not minion.AlmostLastHitable then --and (self.AllyTurret == nil or minion.CanUnderTurret) then
+				if minion.PredictedHP < num and not minion.AlmostAlmost and not minion.AlmostLastHitable and (self.AllyTurret == nil or minion.CanUnderTurret) then
 					num = minion.PredictedHP
 					laneMinion = minion.Minion
 				end
