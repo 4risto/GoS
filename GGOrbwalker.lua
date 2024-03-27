@@ -1,6 +1,5 @@
-local __version__ = 3.034
+local __version__ = 3.035
 local __name__ = "GGOrbwalker"
-
 
 if _G.GGUpdate then
 	return
@@ -671,7 +670,7 @@ Cached = {
 	TurretsSaved = false,
 	WardsSaved = false,
 	TempCacheBuffer = { m = GameTimer(), w = GameTimer(), t = GameTimer() },
-	TempCacheTimeout = 3,
+	TempCacheTimeout = 0,
 
 	WndMsg = function(self, msg, wParam)
 		local oKeys = {}
@@ -2151,7 +2150,7 @@ Data = {
 		end,
 	},
 
-	--12.21.1
+	--14.6.1
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
 		Ahri = { 4, false, 0.668 },
@@ -2177,7 +2176,7 @@ Data = {
 		Chogath = { 1, true, 0.625 },
 		Corki = { 5, false, 0.638 },
 		Darius = { 2, true, 0.625 },
-		Diana = { 4, true, 0.625 },
+		Diana = { 4, true, 0.694 },
 		DrMundo = { 1, true, 0.67 },
 		Draven = { 5, false, 0.679 },
 		Ekko = { 4, true, 0.688 },
@@ -2537,7 +2536,7 @@ Data = {
 			local fromName = from.charName
 			result = self.MinionRange[fromName] ~= nil and self.MinionRange[fromName] or 0
 		elseif fromType == Obj_AI_Turret then
-			result = 775
+			result = 750 + target.boundingRadius --Imp was 775
 		end
 		if target then
 			local targetType = target.type
@@ -3959,8 +3958,6 @@ Target.SortModes = {
 			< (b.health * bMultiplier * ((100 + bDef) / 100)) - b.ap - (b.totalDamage * b.attackSpeed * 2)
 	end,
 
-
-
 	[SORT_CLOSEST] = function(a, b)
 		return a.distance < b.distance
 	end,
@@ -4457,8 +4454,33 @@ Health = {
 				almostalmost = true
 			end
 		end
-		-- under turret, turret attackdata: 1.20048 0.16686 1200
-		-- lates tturret attackdata: ["animationTime"] = 1.6000000238419, ["windUpTime"] = 0.22240000963211, ["projectileSpeed"] = 1200
+		-- under turret, turret attackdata: 1.20048 0.16686 1200 -- [[Imp old data]]
+		--[[ 	zgjfjfl'd 14.6
+		["projectileSpeed"] = 1200,
+        ["windUpTime"] = 0.22240000963211,
+        ["castFrame"] = 4.9499998092651,
+        ["endTime"] = 455.52505493164,
+        ["animationTime"] = 1.6000000238419,
+        ["windDownTime"] = 1.3775999546051,
+        ["attackDelayCastOffsetPercent"] = -0.16099999845028,
+        ["state"] = 1,
+        ["attackDelayOffsetPercent"] = 0,
+        ["target"] = 0,
+
+		turretAttack=attackData
+
+		.attackData: -- for units only
+			.state -- STATE_UNKNOWN, STATE_ATTACK, STATE_WINDUP, STATE_WINDDOWN
+			.windUpTime
+			.windDownTime
+			.animationTime
+			.endTime
+			.castFrame
+			.projectileSpeed
+			.target -- GameObject handle
+			.attackDelayOffsetPercent -- used for calculating animationTime
+			.attackDelayCastOffsetPercent -- used for calculating windUpTime
+		]]
 		if
 			turretAttacked
 			or (turretAttack and turretAttack.target == handle)
@@ -4474,9 +4496,9 @@ Health = {
 			nearTurret = true
 			isTurretTarget = turretAttack.target == handle
 			maxHP = target.maxHealth
-			startTime = turretAttack.endTime - 1.6
-			windUpTime = 0.2224
-			flyTime = GetDistance(self.AllyTurret, target) / 1200
+			startTime = (turretAttack.endTime - turretAttack.animationTime) --turretAttack.endTime - 1.20048
+			windUpTime = (turretAttack.attackData and turretAttack.attackData.windUpTime or 0.22240000963211) --0.16686
+			flyTime = GetDistance(self.AllyTurret, target) / (turretAttack.attackData.projectileSpeed or 1200)--1200
 			turretDamage = Damage:GetAutoAttackDamage(self.AllyTurret, target)
 			turretHits = 1
 			while maxHP > turretHits * turretDamage do
