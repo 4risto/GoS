@@ -1,6 +1,5 @@
-local __version__ = 3.039
+local __version__ = 3.040
 local __name__ = "GGOrbwalker"
-
 
 if _G.GGUpdate then
 	return
@@ -100,8 +99,8 @@ do
 				if GetTickCount() > self.ScriptTimer + 1 then
 					self.Step = 0
 					print("*WARNING* New | " ..
-					self.ScriptName ..
-					" | - [ver. " .. tostring(self.NewVersion) .. "] Downloaded - Please RELOAD with [ F6 ]")
+						self.ScriptName ..
+						" | - [ver. " .. tostring(self.NewVersion) .. "] Downloaded - Please RELOAD with [ F6 ]")
 					--print(self.ScriptName .. " - downloaded! Please 2xf6!")
 				end
 			end
@@ -592,8 +591,13 @@ FlashHelper = {
 
 	CreateMenu = function(self, main)
 		-- stylua: ignore start
-		self.Menu = main:MenuElement({ type = MENU, id = "PMenuFH", name = "Flash Helper", leftIcon =
-		"/Gamsteron_Spell_SummonerFlash.png" })
+		self.Menu = main:MenuElement({
+			type = MENU,
+			id = "PMenuFH",
+			name = "Flash Helper",
+			leftIcon =
+			"/Gamsteron_Spell_SummonerFlash.png"
+		})
 		self.Menu:MenuElement({ id = "Enabled", name = "Enabled", value = true })
 		self.Menu:MenuElement({ id = "Flashlol", name = "Flash LOL HotKey", key = string.byte("P") })
 		self.Menu:MenuElement({ id = "Flashgos", name = "Flash GOS HotKey", key = string.byte("F") })
@@ -653,6 +657,18 @@ _G.Control.Flash = function()
 end
 
 Cached = {
+	--[[ SDK ]]
+	cacheSDK = false,
+	SDK = {
+		OnDraw = {},
+		OnTick = {},
+		OnWndMsg = {},
+	},
+	TempCachedSDK = {},
+	TempCachedOnDraw = {},
+	TempCachedOnTick = {},
+	TempCachedOnWndMsg = {},
+	SDKSaved = false,
 
 	Minions = {},
 	TempCachedMinions = {},
@@ -671,7 +687,7 @@ Cached = {
 	TurretsSaved = false,
 	WardsSaved = false,
 	TempCacheBuffer = { m = GameTimer(), w = GameTimer(), t = GameTimer() },
-	TempCacheTimeout = 3,
+	TempCacheTimeout = 0,
 
 	WndMsg = function(self, msg, wParam)
 		local oKeys = {}
@@ -695,8 +711,66 @@ Cached = {
 			end
 		end
 	end,
-
+	GetSDK = function(self)
+		if not self.SDKSaved then
+			self.SDKSaved = true
+			local cachedOnDraw = self.SDK.OnDraw
+			local cachedOnTick = self.SDK.OnTick
+			local cachedOnWndMsg = self.SDK.OnWndMsg
+			for i = 1, #Cached.SDK do
+				local cachedSDK = self:FetchSDK(self.SDK)
+				--print("cachedSDK: ".. cachedSDK)
+				local count = #cachedSDK
+				if count and count > 0 and count < 1000 then
+					for i = 1, count do
+						local sdk = cachedSDK[i]
+						if sdk then
+							--print("sdk: ".. sdk)
+							table_insert(self.SDK, sdk)
+						end
+					end
+				end
+			end
+		end
+		return self.Turrets
+	end,
+	FetchSDK = function(self, SDK)
+		if self.TempCacheBuffer.t < GameTimer() then
+			self.TempCachedSDK = {}
+			local count = #SDK
+			if count and count > 0 and count < 1000 then
+				for i = 1, count do
+					local sdk = SDK(i)
+					if sdk then
+						table_insert(self.TempCachedSDK, sdk)
+						--TempCachedOnDraw = {},
+						--TempCachedOnTick = {},
+						--TempCachedOnWndMsg = {},
+					end
+				end
+			end
+			self.TempCacheBuffer.t = self.TempCacheBuffer.t + self.TempCacheTimeout
+			return self.TempCachedSDK
+		end
+		return self.TempCachedSDK
+	end,
+	ResetSDK = function (self)
+		if self.cacheSDK then
+			for k in pairs(self.SDK.OnTick) do
+				self.SDK.OnTick[k] = nil
+			end
+			if self.SDKSaved then
+				for i = #self.SDK.OnTick, 1, -1 do
+					self.SDK.OnTick[i] = nil
+				end
+				self.SDKSaved = false
+			end
+		end
+	end,
 	Reset = function(self)
+		--[[ SDK ]]
+		--self.ResetSDK()
+		--
 		for k in pairs(self.Buffs) do
 			self.Buffs[k] = nil
 		end
@@ -1007,20 +1081,30 @@ Menu = {
 	end,
 
 	CreateTarget = function(self)
-		self.Target = self.Main:MenuElement({ id = 'Target', name = 'Target Selector', type = MENU, leftIcon =
-		'/Gamsteron_TargetSelector.png' })
+		self.Target = self.Main:MenuElement({
+			id = 'Target',
+			name = 'Target Selector',
+			type = MENU,
+			leftIcon =
+			'/Gamsteron_TargetSelector.png'
+		})
 		self.Target:MenuElement({ id = 'Priorities', name = 'Priorities', type = MENU })
 		self.Target:MenuElement({ id = 'SelectedTarget', name = 'Selected Target', value = true })
 		self.Target:MenuElement({ id = 'OnlySelectedTarget', name = 'Only Selected Target', value = false })
 		self.Target:MenuElement({ id = 'SortMode' .. myHero.charName, name = 'Sort Mode', value = 1, drop = { 'Auto', 'Closest', 'Near Mouse', 'Lowest HP', 'Lowest MaxHP', 'Highest Priority', 'Most Stack', 'Most AD', 'Most AP', 'Less Cast', 'Less Attack' } })
-		self.Target:MenuElement({ id = 'mindistance', name = 'mindistance', value = 400, min = 100, max = 600, step = 25 })
-		self.Target:MenuElement({ id = 'maxdistance', name = 'maxdistance', value = 800, min = 100, max = 1500, step = 25 })
+		self.Target:MenuElement({ id = 'mindistance', name = 'mindistance', value = 400, min = 100, max = 600, step = 5 })
+		self.Target:MenuElement({ id = 'maxdistance', name = 'maxdistance', value = 800, min = 100, max = 1500, step = 5 })
 		self.Target:MenuElement({ id = 'distmultiplier', name = 'distance multiplier', value = 0.5, min = 0, max = 1, step = 0.01 })
 	end,
 
 	CreateOrbwalker = function(self)
-		self.Orbwalker = self.Main:MenuElement({ id = 'Orbwalker', name = 'Orbwalker', type = MENU, leftIcon =
-		'/Gamsteron_Orbwalker.png' })
+		self.Orbwalker = self.Main:MenuElement({
+			id = 'Orbwalker',
+			name = 'Orbwalker',
+			type = MENU,
+			leftIcon =
+			'/Gamsteron_Orbwalker.png'
+		})
 		self.Orbwalker:MenuElement({ id = 'Enabled', name = 'Enabled', value = true })
 		self.Orbwalker:MenuElement({ id = 'MovementEnabled', name = 'Movement Enabled', value = true })
 		self.Orbwalker:MenuElement({ id = 'AttackEnabled', name = 'Attack Enabled', value = true })
@@ -1031,8 +1115,13 @@ Menu = {
 		self.Orbwalker.Keys:MenuElement({ id = 'LaneClear', name = 'LaneClear Key', key = string.byte('V') })
 		self.Orbwalker.Keys:MenuElement({ id = 'Jungle', name = 'Jungle Key', key = string.byte('V') })
 		self.Orbwalker.Keys:MenuElement({ id = 'Flee', name = 'Flee Key', key = string.byte('A') })
-		self.Orbwalker.Keys:MenuElement({ id = 'HoldKey', name = 'Hold Key', key = string.byte('H'), tooltip =
-		'Should be same in game keybinds' })
+		self.Orbwalker.Keys:MenuElement({
+			id = 'HoldKey',
+			name = 'Hold Key',
+			key = string.byte('H'),
+			tooltip =
+			'Should be same in game keybinds'
+		})
 		self.Orbwalker:MenuElement({ id = 'General', name = 'General', type = MENU })
 		self.Orbwalker.General:MenuElement({ id = 'HarassFarm', name = 'Farm In Harass Mode', value = true })
 		self.Orbwalker.General:MenuElement({ id = 'AttackResetting', name = 'Attack Resetting', value = true })
@@ -1053,26 +1142,36 @@ Menu = {
 	CreateSummonerSpells = function(self)
 		if self.Main.Loader.SummonerSpells:Value() then
 			self.SummonerSpellsLoaded = true
-			self.SummonerSpells = self.Main:MenuElement({ id = 'SummonerSpells', name = 'Summoner Spells', type = MENU, leftIcon =
-			"/Gamsteron_Spell_SummonerDot.png" })
-			self.SummonerSpells:MenuElement({ id = 'Cleanse', name = 'Cleanse', type = MENU, leftIcon =
-			'/Gamsteron_Spell_SummonerBoost.png' })
+			self.SummonerSpells = self.Main:MenuElement({
+				id = 'SummonerSpells',
+				name = 'Summoner Spells',
+				type = MENU,
+				leftIcon =
+				"/Gamsteron_Spell_SummonerDot.png"
+			})
+			self.SummonerSpells:MenuElement({
+				id = 'Cleanse',
+				name = 'Cleanse',
+				type = MENU,
+				leftIcon =
+				'/Gamsteron_Spell_SummonerBoost.png'
+			})
 			self.SummonerSpells.Cleanse:MenuElement({ id = 'BuffTypes', name = 'Buff Types', type = MENU })
-			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Slow', name = 'Slow: nasus w', value = true })           --SLOW = 10 -> nasus W, zilean E
-			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Stun', name = 'Stun: sona r', value = true })            --STUN = 5
-			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Snare', name = 'Snare: xayah e', value = true })         --SNARE = 11
-			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Supress', name = 'Supress: warwick r', value = true })   --SUPRESS = 24
-			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Knockup', name = 'Knockup: yasuo q3', value = true })    --KNOCKUP = 29
-			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Fear', name = 'Fear: fiddle q', value = true })          --FEAR = 21 -> fiddle Q, ...
-			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Charm', name = 'Charm: ahri e', value = true })          --CHARM = 22 -> ahri E, ...
-			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Taunt', name = 'Taunt: rammus e', value = true })        --TAUNT = 8 -> rammus E, ...
+			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Slow', name = 'Slow: nasus w', value = true })    --SLOW = 10 -> nasus W, zilean E
+			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Stun', name = 'Stun: sona r', value = true })     --STUN = 5
+			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Snare', name = 'Snare: xayah e', value = true })  --SNARE = 11
+			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Supress', name = 'Supress: warwick r', value = true }) --SUPRESS = 24
+			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Knockup', name = 'Knockup: yasuo q3', value = true }) --KNOCKUP = 29
+			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Fear', name = 'Fear: fiddle q', value = true })   --FEAR = 21 -> fiddle Q, ...
+			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Charm', name = 'Charm: ahri e', value = true })   --CHARM = 22 -> ahri E, ...
+			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Taunt', name = 'Taunt: rammus e', value = true }) --TAUNT = 8 -> rammus E, ...
 			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Knockback', name = 'Knockback: alistar w', value = true }) --KNOCKBACK = 30 -> alistar W, lee sin R, ...
-			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Blind', name = 'Blind: teemo q', value = true })         --BLIND = 25 -> teemo Q
-			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Disarm', name = 'Disarm: lulu w', value = true })        --DISARM = 31 -> Lulu W
+			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Blind', name = 'Blind: teemo q', value = true })  --BLIND = 25 -> teemo Q
+			self.SummonerSpells.Cleanse.BuffTypes:MenuElement({ id = 'Disarm', name = 'Disarm: lulu w', value = true }) --DISARM = 31 -> Lulu W
 			self.SummonerSpells.Cleanse:MenuElement({ id = 'Enabled', name = 'Enabled', value = true })
 			self.SummonerSpells.Cleanse:MenuElement({ id = 'Count', name = 'Enemies Count', value = 1, min = 0, max = 5, step = 1 })
-			self.SummonerSpells.Cleanse:MenuElement({ id = 'Distance', name = 'Enemies Distance < X', value = 1200, min = 0, max = 1500, step = 50 })
-			self.SummonerSpells.Cleanse:MenuElement({ id = 'Duration', name = 'Buff Duration > X', value = 500, min = 0, max = 1000, step = 50 })
+			self.SummonerSpells.Cleanse:MenuElement({ id = 'Distance', name = 'Enemies Distance < X', value = 1200, min = 0, max = 1500, step = 5 })
+			self.SummonerSpells.Cleanse:MenuElement({ id = 'Duration', name = 'Buff Duration > X', value = 500, min = 0, max = 1000, step = 5 })
 			self.SummonerSpells.Cleanse:MenuElement({ id = 'Delay', name = 'humanized delay', value = 0.1, min = 0, max = 0.3, step = 0.01 })
 		end
 	end,
@@ -1083,17 +1182,17 @@ Menu = {
 			self.Main:MenuElement({ id = 'Items', name = 'Items', type = MENU, leftIcon = '/Gamsteron_Item_3139.png' })
 			self.Main.Items:MenuElement({ id = 'Qss', name = 'QSS | Mercurial Scimitar | Silvermere Dawn', type = MENU })
 			self.Main.Items.Qss:MenuElement({ id = 'BuffTypes', name = 'Buff Types', type = MENU })
-			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Slow', name = 'Slow: nasus w', value = true })           --SLOW = 10 -> nasus W, zilean E
-			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Stun', name = 'Stun: sona r', value = true })            --STUN = 5
-			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Snare', name = 'Snare: xayah e', value = true })         --SNARE = 11
-			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Supress', name = 'Supress: warwick r', value = true })   --SUPRESS = 24
-			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Knockup', name = 'Knockup: yasuo q3', value = true })    --KNOCKUP = 29
-			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Fear', name = 'Fear: fiddle q', value = true })          --FEAR = 21 -> fiddle Q, ...
-			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Charm', name = 'Charm: ahri e', value = true })          --CHARM = 22 -> ahri E, ...
-			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Taunt', name = 'Taunt: rammus e', value = true })        --TAUNT = 8 -> rammus E, ...
+			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Slow', name = 'Slow: nasus w', value = true })    --SLOW = 10 -> nasus W, zilean E
+			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Stun', name = 'Stun: sona r', value = true })     --STUN = 5
+			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Snare', name = 'Snare: xayah e', value = true })  --SNARE = 11
+			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Supress', name = 'Supress: warwick r', value = true }) --SUPRESS = 24
+			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Knockup', name = 'Knockup: yasuo q3', value = true }) --KNOCKUP = 29
+			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Fear', name = 'Fear: fiddle q', value = true })   --FEAR = 21 -> fiddle Q, ...
+			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Charm', name = 'Charm: ahri e', value = true })   --CHARM = 22 -> ahri E, ...
+			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Taunt', name = 'Taunt: rammus e', value = true }) --TAUNT = 8 -> rammus E, ...
 			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Knockback', name = 'Knockback: alistar w', value = true }) --KNOCKBACK = 30 -> alistar W, lee sin R, ...
-			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Blind', name = 'Blind: teemo q', value = true })         --BLIND = 25 -> teemo Q
-			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Disarm', name = 'Disarm: lulu w', value = true })        --DISARM = 31 -> Lulu W
+			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Blind', name = 'Blind: teemo q', value = true })  --BLIND = 25 -> teemo Q
+			self.Main.Items.Qss.BuffTypes:MenuElement({ id = 'Disarm', name = 'Disarm: lulu w', value = true }) --DISARM = 31 -> Lulu W
 			self.Main.Items.Qss:MenuElement({ id = 'Enabled', name = 'Enabled', value = true })
 			self.Main.Items.Qss:MenuElement({ id = 'Count', name = 'Enemies Count', value = 1, min = 0, max = 5, step = 1 })
 			self.Main.Items.Qss:MenuElement({ id = 'Distance', name = 'Enemies Distance < X', value = 1200, min = 0, max = 1500, step = 50 })
@@ -1133,10 +1232,25 @@ Menu = {
 
 	CreateGeneral = function(self)
 		self.Main:MenuElement({ name = '', type = SPACE, id = 'GeneralSpace' })
-		self.Main:MenuElement({ id = 'AttackTKey', name = 'Attack Target Key', key = string.byte('U'), tooltip =
-		'You should bind this one in ingame settings' })
-		self.Main:MenuElement({ id = 'Latency', name = 'Ping [ms]', value = 50, min = 0, max = 120, step = 1, callback = function(
-			value) _G.LATENCY = value end })
+		self.Main:MenuElement({
+			id = 'AttackTKey',
+			name = 'Attack Target Key',
+			key = string.byte('U'),
+			tooltip =
+			'You should bind this one in ingame settings'
+		})
+		self.Main:MenuElement({
+			id = 'Latency',
+			name = 'Ping [ms]',
+			value = 50,
+			min = 0,
+			max = 120,
+			step = 1,
+			callback = function(
+				value)
+				_G.LATENCY = LATENCY or value
+			end
+		})
 		self.Main:MenuElement({ id = 'SetCursorMultipleTimes', name = 'Set Cursor Position Multiple Times', value = false })
 		self.Main:MenuElement({ id = 'CursorDelay', name = 'Cursor Delay', value = 30, min = 5, max = 50, step = 1 })
 		self.Main:MenuElement({ id = 'Humanizer', name = 'min dist b/t move commands', value = 200, min = 0, max = 300, step = 5 })
@@ -1163,12 +1277,14 @@ if (Menu.Main.Drawings.RangeAlpha) then
 end
 
 Color = {
-	LightGreen = Draw.Color(255, 144, 238, 144),
-	OrangeRed = Draw.Color(255, 255, 69, 0),
 	Black = Draw.Color(255, 0, 0, 0),
 	Red = Draw.Color(255, 255, 0, 0),
+	Blue = Draw.Color(255, 0, 255, 0),
+	Green = Draw.Color(255, 0, 0, 255),
 	Yellow = Draw.Color(255, 255, 255, 0),
 	DarkRed = Draw.Color(255, 204, 0, 0),
+	LightGreen = Draw.Color(255, 144, 238, 144),
+	OrangeRed = Draw.Color(255, 255, 69, 0),
 	AlmostLastHitable = Draw.Color(255, 239, 159, 55),
 	LastHitable = Draw.Color(255, 255, 255, 255),
 	Range = Draw.Color(rangeAlpha, 49, 210, 0),
@@ -1403,7 +1519,7 @@ Damage = {
 			if Buff:HasBuff(myHero, "zeriqpassiveready") then
 				args.RawMagical = 90 + (110 / 17) * (level - 1) * (0.7025 + 0.0175 * (level - 1)) + args.From.ap * 1.1
 			else
-				args.RawMagical = 10 + (15 / 17) * (level - 1) * (0.7025 + 0.0175 * (level-1)) + args.From.ap * 0.03
+				args.RawMagical = 10 + (15 / 17) * (level - 1) * (0.7025 + 0.0175 * (level - 1)) + args.From.ap * 0.03
 			end
 		end,
 		["Caitlyn"] = function(args)
@@ -1866,7 +1982,7 @@ Damage = {
 						self:GetStaticAutoAttackDamage(from, targetIsMinion)) * 2
 				end
 				return self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion)) *
-				1.33
+					1.33
 			end
 			--[[ 			if myHero.hudAmmo==1 then
 				print(self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion)))
@@ -2041,7 +2157,7 @@ Data = {
 				--print(Game.Timer())
 			end
 			return (name == "CaitlynQ" or name == "CaitlynE" or name == "CaitlynW" or name == "CaitlynR") and
-			spell.endTime - Game.Timer() > 0.04
+				spell.endTime - Game.Timer() > 0.04
 		end,
 	},
 
@@ -2151,7 +2267,7 @@ Data = {
 		end,
 	},
 
-	--12.21.1
+	--14.6.1
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
 		Ahri = { 4, false, 0.668 },
@@ -2177,7 +2293,7 @@ Data = {
 		Chogath = { 1, true, 0.625 },
 		Corki = { 5, false, 0.638 },
 		Darius = { 2, true, 0.625 },
-		Diana = { 4, true, 0.625 },
+		Diana = { 4, true, 0.694 },
 		DrMundo = { 1, true, 0.67 },
 		Draven = { 5, false, 0.679 },
 		Ekko = { 4, true, 0.688 },
@@ -2537,7 +2653,7 @@ Data = {
 			local fromName = from.charName
 			result = self.MinionRange[fromName] ~= nil and self.MinionRange[fromName] or 0
 		elseif fromType == Obj_AI_Turret then
-			result = 775
+			result = 750 + target.boundingRadius --Imp was 775
 		end
 		if target then
 			local targetType = target.type
@@ -3755,6 +3871,7 @@ Target = {
 		a = a or 20000
 		dmgType = dmgType or 1
 		self.CurrentDamage = dmgType
+		-- [[ SELECTED ]]
 		if
 			self.MenuCheckSelected:Value()
 			and Object:IsValid(self.Selected)
@@ -3784,6 +3901,8 @@ Target = {
 				return nil
 			end
 		end
+		--
+
 		if type(a) == "number" then
 			a = Object:GetEnemyHeroes(a, false, true, isAttack)
 		end
@@ -3869,7 +3988,13 @@ Target = {
 		else
 			table_sort(a, self.CurrentSort)
 		end
-		return (#a == 0 and nil or a)
+		if self.CurrentSortMode == nil then
+			return nil
+		end
+		return (#a == 0 and nil or (a or a[1])) --??
+		-- return (#a == 0 and nil or (a and a[1])) --?
+		-- return (#a == 0 and nil or a) --now?
+		-- return (#a == 0 and nil or a[1]) --old?
 	end,
 
 	GetPriority = function(self, unit)
@@ -3936,14 +4061,14 @@ if Target.StackBuffs[myHero.charName] then
 end
 
 Target.SortModes = {
-	[SORT_AUTO] = function(a, b)
+	[SORT_AUTO] = function(a, b) --1
 		local mindist = Menu.Target.mindistance:Value()
 		local maxdist = Menu.Target.maxdistance:Value()
 		local distmultiplier = Menu.Target.distmultiplier:Value()
 		local aMultiplier = 1.75 - (Target:GetPriority(a) * 0.15) +
-		(distmultiplier * (math.max(math.min(a.distance, maxdist), mindist) / math.max(math.min(b.distance, maxdist), mindist)))
+			(distmultiplier * (math.max(math.min(a.distance, maxdist), mindist) / math.max(math.min(b.distance, maxdist), mindist)))
 		local bMultiplier = 1.75 - (Target:GetPriority(b) * 0.15) +
-		(distmultiplier * (math.max(math.min(b.distance, maxdist), mindist) / math.max(math.min(a.distance, maxdist), mindist)))
+			(distmultiplier * (math.max(math.min(b.distance, maxdist), mindist) / math.max(math.min(a.distance, maxdist), mindist)))
 
 		local aDef, bDef = 0, 0
 		if Target.CurrentDamage == DAMAGE_TYPE_MAGICAL then
@@ -3959,29 +4084,27 @@ Target.SortModes = {
 			< (b.health * bMultiplier * ((100 + bDef) / 100)) - b.ap - (b.totalDamage * b.attackSpeed * 2)
 	end,
 
-
-
-	[SORT_CLOSEST] = function(a, b)
+	[SORT_CLOSEST] = function(a, b) --2
 		return a.distance < b.distance
 	end,
 
-	[SORT_NEAR_MOUSE] = function(a, b)
+	[SORT_NEAR_MOUSE] = function(a, b) --3
 		return GetDistance(a.pos, Vector(mousePos)) < GetDistance(b.pos, Vector(mousePos))
 	end,
 
-	[SORT_LOWEST_HEALTH] = function(a, b)
+	[SORT_LOWEST_HEALTH] = function(a, b) --4
 		return a.health < b.health
 	end,
 
-	[SORT_LOWEST_MAX_HEALTH] = function(a, b)
+	[SORT_LOWEST_MAX_HEALTH] = function(a, b) --5
 		return a.maxHealth < b.maxHealth
 	end,
 
-	[SORT_HIGHEST_PRIORITY] = function(a, b)
+	[SORT_HIGHEST_PRIORITY] = function(a, b) --6
 		return Target:GetPriority(a) > Target:GetPriority(b)
 	end,
 
-	[SORT_MOST_STACK] = function(a, b)
+	[SORT_MOST_STACK] = function(a, b) --7
 		local aMax = 0
 		for i, buffName in pairs(Target.ActiveStackBuffs) do
 			local buff = Buff:GetBuff(a, buffName)
@@ -3999,15 +4122,15 @@ Target.SortModes = {
 		return aMax > bMax
 	end,
 
-	[SORT_MOST_AD] = function(a, b)
+	[SORT_MOST_AD] = function(a, b) --8
 		return a.totalDamage > b.totalDamage
 	end,
 
-	[SORT_MOST_AP] = function(a, b)
+	[SORT_MOST_AP] = function(a, b) --9
 		return a.ap > b.ap
 	end,
 
-	[SORT_LESS_CAST] = function(a, b)
+	[SORT_LESS_CAST] = function(a, b) --10
 		local aMultiplier = 1.75 - Target:GetPriority(a) * 0.15
 		local bMultiplier = 1.75 - Target:GetPriority(b) * 0.15
 		local aDef, bDef = 0, 0
@@ -4018,7 +4141,7 @@ Target.SortModes = {
 			< (b.health * bMultiplier * ((100 + bDef) / 100)) - b.ap - (b.totalDamage * b.attackSpeed * 2)
 	end,
 
-	[SORT_LESS_ATTACK] = function(a, b)
+	[SORT_LESS_ATTACK] = function(a, b) --11
 		local aMultiplier = 1.75 - Target:GetPriority(a) * 0.15
 		local bMultiplier = 1.75 - Target:GetPriority(b) * 0.15
 		local aDef, bDef = 0, 0
@@ -4127,8 +4250,16 @@ Health = {
 					end
 
 					if obj.charName == "IllaoiMinion" then
-						local value = { LastHitable = true, Unkillable = false, AlmostLastHitable = false, PredictedHP =
-						myHero.totalDamage, Minion = obj, AlmostAlmost = false, Time = GameTimer() }
+						local value = {
+							LastHitable = true,
+							Unkillable = false,
+							AlmostLastHitable = false,
+							PredictedHP =
+								myHero.totalDamage,
+							Minion = obj,
+							AlmostAlmost = false,
+							Time = GameTimer()
+						}
 					end
 
 					table_insert(self.EnemyMinionsInAttackRange, obj)
@@ -4139,14 +4270,30 @@ Health = {
 					or (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(obj))
 				then
 					if obj.charName == "SennaSoul" then
-						local value = { LastHitable = true, Unkillable = false, AlmostLastHitable = false, PredictedHP = 1, Minion =
-						obj, AlmostAlmost = false, Time = GameTimer() }
+						local value = {
+							LastHitable = true,
+							Unkillable = false,
+							AlmostLastHitable = false,
+							PredictedHP = 1,
+							Minion =
+								obj,
+							AlmostAlmost = false,
+							Time = GameTimer()
+						}
 						table_insert(Health.FarmMinions, value)
 						table_insert(self.EnemyMinionsInAttackRange, obj)
 					end
 					if obj.charName == "Cherry_Plant_Powerup" then
-						local value = { LastHitable = true, Unkillable = false, AlmostLastHitable = false, PredictedHP = 1, Minion =
-						obj, AlmostAlmost = false, Time = GameTimer() }
+						local value = {
+							LastHitable = true,
+							Unkillable = false,
+							AlmostLastHitable = false,
+							PredictedHP = 1,
+							Minion =
+								obj,
+							AlmostAlmost = false,
+							Time = GameTimer()
+						}
 						table_insert(Health.FarmMinions, value)
 						table_insert(self.EnemyMinionsInAttackRange, obj)
 					end
@@ -4212,8 +4359,8 @@ Health = {
 		speed = Attack:GetProjectileSpeed()
 		windup = Attack:GetWindup()
 		time = windup -
-		self.ExtraFarmDelay:Value() *
-		0.001                                         --why is this -getlatency here? i isbjorn might try removing it -- - Data:GetLatency()
+			self.ExtraFarmDelay:Value() *
+			0.001 --why is this -getlatency here? i isbjorn might try removing it -- - Data:GetLatency()
 		anim = Attack:GetAnimation()
 		for i = 1, #self.EnemyMinionsInAttackRange do
 			local target = self.EnemyMinionsInAttackRange[i]
@@ -4457,7 +4604,33 @@ Health = {
 				almostalmost = true
 			end
 		end
-		-- under turret, turret attackdata: 1.20048 0.16686 1200
+		-- under turret, turret attackdata: 1.20048 0.16686 1200 -- [[Imp old data]]
+		--[[ 	zgjfjfl'd 14.6
+		["projectileSpeed"] = 1200,
+        ["windUpTime"] = 0.22240000963211,
+        ["castFrame"] = 4.9499998092651,
+        ["endTime"] = 455.52505493164,
+        ["animationTime"] = 1.6000000238419,
+        ["windDownTime"] = 1.3775999546051,
+        ["attackDelayCastOffsetPercent"] = -0.16099999845028,
+        ["state"] = 1,
+        ["attackDelayOffsetPercent"] = 0,
+        ["target"] = 0,
+
+		turretAttack=attackData
+
+		.attackData: -- for units only
+			.state -- STATE_UNKNOWN, STATE_ATTACK, STATE_WINDUP, STATE_WINDDOWN
+			.windUpTime
+			.windDownTime
+			.animationTime
+			.endTime
+			.castFrame
+			.projectileSpeed
+			.target -- GameObject handle
+			.attackDelayOffsetPercent -- used for calculating animationTime
+			.attackDelayCastOffsetPercent -- used for calculating windUpTime
+		]]
 		if
 			turretAttacked
 			or (turretAttack and turretAttack.target == handle)
@@ -4467,15 +4640,18 @@ Health = {
 					Data:IsInAutoAttackRange(self.AllyTurret, target)
 					or Data:IsInAutoAttackRange2(self.AllyTurret, target)
 				)
-			)
+			) --and turretAttack
 		then
-			local nearTurret, isTurretTarget, maxHP, startTime, windUpTime, flyTime, turretDamage, turretHits
+			local nearTurret, isTurretTarget, maxHP, startTime, windUpTime, flyTime, turretDamage, turretHits, speed
 			nearTurret = true
-			isTurretTarget = turretAttack.target == handle
+			-- turretattackData = self.AllyTurret ~= nil and self.AllyTurret.attackData or nil
+			-- if turretAttack then
+			isTurretTarget = self.AllyTurret.target == handle
 			maxHP = target.maxHealth
-			startTime = turretAttack.endTime - 1.20048
-			windUpTime = 0.16686
-			flyTime = GetDistance(self.AllyTurret, target) / 1200
+			startTime = (self.AllyTurret.attackData.endTime - self.AllyTurret.attackData.animationTime) --turretAttack.endTime - 1.20048
+			windUpTime = (self.AllyTurret and self.AllyTurret.attackData.windUpTime or 0.22240000963211) --0.16686
+			speed = (self.AllyTurret and self.AllyTurret.attackData.projectileSpeed or 1200)
+			flyTime = GetDistance(self.AllyTurret, target) / speed                              --1200
 			turretDamage = Damage:GetAutoAttackDamage(self.AllyTurret, target)
 			turretHits = 1
 			while maxHP > turretHits * turretDamage do
@@ -4486,6 +4662,7 @@ Health = {
 				end
 			end
 			turretHits = turretHits - 1
+			-- end
 			return {
 				LastHitable = lastHitable,
 				Unkillable = unkillable,
@@ -5399,10 +5576,38 @@ Orbwalker:RegisterMenuKey(ORBWALKER_MODE_LANECLEAR, Menu.Orbwalker.Keys.LaneClea
 Orbwalker:RegisterMenuKey(ORBWALKER_MODE_JUNGLECLEAR, Menu.Orbwalker.Keys.Jungle)
 Orbwalker:RegisterMenuKey(ORBWALKER_MODE_FLEE, Menu.Orbwalker.Keys.Flee)
 
+--[[ SDK API ]]
 _G.SDK = {
 	OnDraw = {},
 	OnTick = {},
 	OnWndMsg = {},
+	--[[ OnDraw/OnTick/OnWndMsg
+	OnDraw = {
+		Target = Target:OnDraw(),
+		Cursor = Cursor:OnDraw(),
+		Orbwalker = Orbwalker:OnDraw(),
+		Health = Health:OnDraw(),
+	},
+	OnTick = {
+		FlashHelper = FlashHelper:OnTick(),
+		Cursor = Cursor:OnTick(),
+		Action = Action:OnTick(),
+		Attack = Attack:OnTick(),
+		Orbwalker = Orbwalker:OnTick(),
+		--
+		ChampionInfo = ChampionInfo:OnTick(),
+		SummonerSpell = SummonerSpell:OnTick(),
+		Item = Item:OnTick(),
+		Target = Target:OnTick(),
+		Health = Health:OnTick(),
+	},
+	OnWndMsg = {
+		Data = Data:WndMsg(..., ...),
+		Spell = Spell:WndMsg(..., ...),
+		Target = Target:WndMsg(..., ...),
+		Cached = Cached:WndMsg(..., ...),
+	},
+	 ]]
 	Menu = Menu,
 	Color = Color,
 	Action = Action,
@@ -5448,15 +5653,78 @@ drawTest = 2
 ]]
 Callback.Add("Load", function()
 	ChampionInfo:OnLoad()
-
 	Object:OnLoad()
-
+	-- Cached:GetSDK() --TODO: Save base SDK, temp load/combine all SDK callbacks
 	local ticks = SDK.OnTick
 	local draws = SDK.OnDraw
 	local wndmsgs = SDK.OnWndMsg
+	-- print("#ticks: "..#ticks)
+
 	if Game.Latency() < 300 then _G.LATENCY = Game.Latency() else _G.LATENCY = Menu.Main.Latency:Value() end
+	Callback.Add("WndMsg", function(msg, wParam)
+		Data:WndMsg(msg, wParam)
+		Spell:WndMsg(msg, wParam)
+		Target:WndMsg(msg, wParam)
+		Cached:WndMsg(msg, wParam)
+		for i = 1, #wndmsgs do
+			-- if wndmsgs[i] then wndmsgs[i](msg, wParam) end
+			wndmsgs[i](msg, wParam)
+		end
+		--[[ for i = 1, #wndmsgs do
+			local next = next
+			--print("wndmsgs[i]: "..i)
+			wndmsgs[i](msg, wParam)
+			if next(wndmsgs) == nil then
+				break
+			end
+		end ]]
+	end)
+
+	Callback.Add("Tick", function()
+		--
+		Cached:Reset()
+		--
+		--[[if tickTest ~= 2 then
+			print("TICK")
+		end
+		tickTest = 1
+		if Item:HasItem(myHero, 3031) then
+			print("ok " .. os.clock())
+		end]]
+		--print(myHero.critChance)
+		_G.LATENCY = Game.Latency() < 300 and Game.Latency() or Menu.Main.Latency:Value()
+
+		if GameIsChatOpen() then
+			LastChatOpenTimer = GetTickCount()
+		end
+
+		FlashHelper:OnTick()
+		Cursor:OnTick()
+		Action:OnTick()
+		Attack:OnTick()
+		Orbwalker:OnTick()
+		ChampionInfo:OnTick()
+		SummonerSpell:OnTick()
+		Item:OnTick()
+		Target:OnTick()
+		Health:OnTick()
+		for i = 1, #ticks do --why was this in draw? -Imp
+			-- if ticks[i] then ticks[i]() end
+			ticks[i]()
+		end
+		--[[ for i = 1, #ticks do
+			local next = next
+			--print("ticks[i]: "..i)
+			ticks[i]()
+			if next(ticks) == nil then
+				break
+			end
+		end ]]
+		--tickTest = 2
+	end)
 
 	Callback.Add("Draw", function()
+		-- Cached:Reset()
 		--[[local as = myHero.activeSpell
 		if as and as.valid then
 			print(as.name)
@@ -5484,62 +5752,29 @@ Callback.Add("Load", function()
 			print("DRAW")
 		end
 		drawTest = 1]]
-
 		if GameIsChatOpen() then
 			LastChatOpenTimer = GetTickCount()
 		end
-
-		FlashHelper:OnTick()
-		Cached:Reset()
-		Cursor:OnTick()
-		Action:OnTick()
-		Attack:OnTick()
-		Orbwalker:OnTick()
 		if Menu.Main.Drawings.Enabled:Value() then
 			Target:OnDraw()
 			Cursor:OnDraw()
 			Orbwalker:OnDraw()
 			Health:OnDraw()
+
 			for i = 1, #draws do
+				-- if draws[i] then draws[i]() end
 				draws[i]()
 			end
+			--[[ for i = 1, #draws do
+				local next = next
+				--print("draws[i]: "..i)
+				draws[i]()
+				if next(draws) == nil then
+					break
+				end
+			end ]]
 		end
 		--drawTest = 2
-	end)
-
-	Callback.Add("Tick", function()
-		--[[if tickTest ~= 2 then
-			print("TICK")
-		end
-		tickTest = 1
-		if Item:HasItem(myHero, 3031) then
-			print("ok " .. os.clock())
-		end]]
-		--print(myHero.critChance)
-		_G.LATENCY = Game.Latency() < 300 and Game.Latency() or Menu.Main.Latency:Value()
-		if GameIsChatOpen() then
-			LastChatOpenTimer = GetTickCount()
-		end
-		for i = 1, #ticks do --why was this in draw? -Imp
-			ticks[i]()
-		end
-		Cached:Reset()
-		ChampionInfo:OnTick()
-		SummonerSpell:OnTick()
-		Item:OnTick()
-		Target:OnTick()
-		Health:OnTick()
-		--tickTest = 2
-	end)
-
-	Callback.Add("WndMsg", function(msg, wParam)
-		Data:WndMsg(msg, wParam)
-		Spell:WndMsg(msg, wParam)
-		Target:WndMsg(msg, wParam)
-		Cached:WndMsg(msg, wParam)
-		for i = 1, #wndmsgs do
-			wndmsgs[i](msg, wParam)
-		end
 	end)
 
 	if _G.Orbwalker then
