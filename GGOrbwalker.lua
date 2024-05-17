@@ -1,4 +1,4 @@
-local __version__ = 3.043
+local __version__ = 3.044
 local __name__ = "GGOrbwalker"
 
 
@@ -643,14 +643,36 @@ end
 
 Cached = {
 
+	OtherMinions = {
+		"apheliosturret",
+		"gangplankbarrel",
+		"heimertyellow",
+		"heimertblue",
+		"illaoiminion",
+		"jhintrap",
+		"kalistaspawn",
+		"nidaleespear",
+		"sennasoul",
+		"teemomushroom",
+		"yorickwinvisible",
+		"zyragraspingplant",
+		"zyrathornplant",
+		"sru_plant_health",
+		"sru_plant_satchel",
+		"sru_plant_vision",
+		"cherry_plant_powerup"
+	},
+
 	Minions = {},
 	TempCachedMinions = {},
 	TempCachedWards = {},
 	TempCachedTurrets = {},
+	TempCachedPlants = {},
 	ExtraHeroes = {},
 	ExtraUnits = {},
 	Turrets = {},
 	Wards = {},
+	Plants = {},
 	Heroes = {},
 	Buffs = {},
 	HeroesSaved = false,
@@ -659,7 +681,8 @@ Cached = {
 	ExtraUnitsSaved = false,
 	TurretsSaved = false,
 	WardsSaved = false,
-	TempCacheBuffer = {m = GameTimer(), w = GameTimer(), t = GameTimer()},
+	PlantsSaved = false,
+	TempCacheBuffer = {m = GameTimer(), w = GameTimer(), t = GameTimer(), p = GameTimer()},
 	TempCacheTimeout = 3,
 
 	WndMsg = function(self, msg, wParam)
@@ -678,8 +701,8 @@ Cached = {
 
 		--If we press an orbwalker hotkey, reset our buffer so we immediately cache new minions (we only do this once per button press to prevent lag)
 		for _, key in pairs(oKeys) do
-			if (wParam == key) then
-				self.TempCacheBuffer = {m = GameTimer(), w = GameTimer(), t = GameTimer()}
+			if (msg == KEY_DOWN and wParam == key) then
+				self.TempCacheBuffer = {m = GameTimer(), w = GameTimer(), t = GameTimer(), p = GameTimer()}
 				return
 			end
 		end
@@ -733,6 +756,12 @@ Cached = {
 				self.Wards[i] = nil
 			end
 			self.WardsSaved = false
+		end
+		if self.PlantsSaved then
+			for i = #self.Plants, 1, -1 do
+				self.Plants[i] = nil
+			end
+			self.PlantsSaved = false
 		end
 	end,
 
@@ -823,10 +852,11 @@ Cached = {
 					end
 				end
 			end
-		end
-		for i = 1, #self.ExtraUnits do
-			local e = self.ExtraUnits[i]
-			table_insert(self.Minions, e)
+
+			for i = 1, #self.ExtraUnits do
+				local e = self.ExtraUnits[i]
+				table_insert(self.Minions, e)
+			end
 		end
 		return self.Minions
 	end,
@@ -889,7 +919,6 @@ Cached = {
 	GetWards = function(self)
 		if not self.WardsSaved then
 			self.WardsSaved = true
-
 			local cachedWards = self:FetchCachedWards()
 			local count = #cachedWards
 			if count and count > 0 and count < 1000 then
@@ -921,6 +950,46 @@ Cached = {
 		end
 
 		return self.TempCachedWards
+	end,
+	
+	GetPlants = function(self)
+		if not self.PlantsSaved then
+			self.PlantsSaved = true
+			local cachedPlants = self:FetchCachedPlants()
+			local count = #cachedPlants
+			if count and count > 0 and count < 1000 then
+				for i = 1, count do
+					local o = cachedPlants[i]
+					if o and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
+						table_insert(self.Plants, o)
+					end
+				end
+			end
+		end
+		return self.Plants
+	end,
+
+	FetchCachedPlants = function(self)
+		if self.TempCacheBuffer.p <= GameTimer() then
+			self.TempCachedPlants = {}
+			local count = GameObjectCount()
+			if count and count > 0 and count < 100000 then
+				for i = 1, count do
+					local o = GameObject(i)
+					if o and o.type == Obj_AI_Minion and o.isEnemy and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
+						for _, unitName in ipairs(self.OtherMinions) do
+							if o.charName:lower() == unitName then
+								table_insert(self.TempCachedPlants, o)
+							end
+						end
+					end
+				end
+			end
+			self.TempCacheBuffer.p = self.TempCacheBuffer.p + self.TempCacheTimeout
+			return self.TempCachedPlants
+		end
+
+		return self.TempCachedPlants
 	end,
 
 	GetBuffs = function(self, o)
@@ -1005,6 +1074,8 @@ Menu = {
         self.Orbwalker.Keys:MenuElement({id = 'Flee', name = 'Flee Key', key = string.byte('A')})
         self.Orbwalker.Keys:MenuElement({id = 'HoldKey', name = 'Hold Key', key = string.byte('H'), tooltip = 'Should be same in game keybinds'})
         self.Orbwalker:MenuElement({id = 'General', name = 'General', type = MENU})
+        self.Orbwalker.General:MenuElement({id = 'AttackBarrel', name = 'Attack Gangplank Barrel', value = true})
+        self.Orbwalker.General:MenuElement({id = 'AttackPlants', name = 'Attack Plants(LaneClear Mode)', value = false})
         self.Orbwalker.General:MenuElement({id = 'HarassFarm', name = 'Farm In Harass Mode', value = true})
         self.Orbwalker.General:MenuElement({id = 'AttackResetting', name = 'Attack Resetting', value = true})
         self.Orbwalker.General:MenuElement({id = 'FastKiting', name = 'Fast Kiting', value = true})
@@ -1013,8 +1084,8 @@ Menu = {
         self.Orbwalker.General:MenuElement({id = 'HoldRadius', name = 'Hold Radius', value = 0, min = 0, max = 250, step = 10})
         self.Orbwalker.General:MenuElement({id = 'ExtraWindUpTime', name = 'Extra WindUpTime', value = 0, min = -25, max = 75, step = 5})
         self.Orbwalker:MenuElement({id = 'RandomHumanizer', name = 'Random Humanizer', type = MENU})
-        self.Orbwalker.RandomHumanizer:MenuElement({id = 'Min', name = 'Min', value = 100, min = 50, max = 300, step = 10})
-        self.Orbwalker.RandomHumanizer:MenuElement({id = 'Max', name = 'Max', value = 150, min = 150, max = 400, step = 10})
+        self.Orbwalker.RandomHumanizer:MenuElement({id = 'Min', name = 'Min', value = 300, min = 50, max = 400, step = 10})
+        self.Orbwalker.RandomHumanizer:MenuElement({id = 'Max', name = 'Max', value = 500, min = 150, max = 500, step = 10})
         self.Orbwalker:MenuElement({id = 'Farming', name = 'Farming Settings', type = MENU})
         self.Orbwalker.Farming:MenuElement({id = 'LastHitPriority', name = 'Priorize Last Hit over Harass', value = true})
         self.Orbwalker.Farming:MenuElement({id = 'PushPriority', name = 'Priorize Push over Freeze', value = true})
@@ -1084,7 +1155,7 @@ Menu = {
 
     CreateGeneral = function(self)
         self.Main:MenuElement({name = '', type = SPACE, id = 'GeneralSpace'})
-        -- self.Main:MenuElement({id = 'AttackTKey', name = 'Attack Target Key', key = string.byte('U'), tooltip = 'You should bind this one in ingame settings'})
+        self.Main:MenuElement({id = 'AttackTKey', name = 'Attack Target Key', key = string.byte('U'), tooltip = 'You should bind this one in ingame settings'})
         self.Main:MenuElement({id = 'Latency', name = 'Ping [ms]', value = 50, min = 0, max = 120, step = 1, callback = function(value) _G.LATENCY = value end})
         self.Main:MenuElement({id = 'SetCursorMultipleTimes', name = 'Set Cursor Position Multiple Times', value = false})
         self.Main:MenuElement({id = 'CursorDelay', name = 'Cursor Delay', value = 30, min = 30, max = 50, step = 1})
@@ -1297,6 +1368,23 @@ Buff = {
 		end
 		return result
 	end,
+	
+	GetBuffStartTime = function(self, unit, name)
+		name = name:lower()
+		local result = 0
+		local buff = nil
+		local buffs = Cached:GetBuffs(unit)
+		for i = 1, #buffs do
+			buff = buffs[i]
+			if buff.name:lower() == name then
+				local time = buff.startTime
+				if time > result then
+					result = time
+				end
+			end
+		end
+		return result
+	end,
 
 	Print = function(self, target)
 		local result = ""
@@ -1380,7 +1468,7 @@ Damage = {
 		end,
 		["Caitlyn"] = function(args)
 			if Buff:HasBuff(args.From, "caitlynpassivedriver") then
-				local modCrit = 1.4875 + (Item:HasItem(args.From, 3031) and 0.34 or 0)
+				local modCrit = 1.4875 + (Item:HasItem(args.From, 3031) and 0.425 or 0)
 				local level = args.From.levelData.lvl
 				local t = level < 7 and 1.1 or (level < 13 and 1.15 or 1.2)
 				if args.TargetIsMinion then
@@ -1394,8 +1482,7 @@ Damage = {
 			end
 		end,
 		["Corki"] = function(args)
-			args.RawTotal = args.RawTotal * 0.5
-			args.RawMagical = args.RawTotal
+			args.CalculatedTrue = args.CalculatedTrue + 0.15 * args.From.totalDamage
 		end,
 		["Diana"] = function(args)
 			if Buff:GetBuffCount(args.From, "dianapassivemarker") == 2 then
@@ -1513,11 +1600,16 @@ Damage = {
 
 	ItemStaticDamage = {
 		[1043] = function(args)
-			args.RawMagical = args.RawMagical + 15
+			args.RawPhysical = args.RawPhysical + 15
 		end,
-		[3085] = function(args)
-			args.RawMagical = args.RawMagical + 30
+		[3144] = function(args)
+			if not args.TargetIsMinion then
+				args.RawMagical = args.RawMagical + 40
+			end
 		end,
+		-- [3085] = function(args)
+			-- args.RawMagical = args.RawMagical + 30
+		-- end,
 		[3091] = function(args)
 			local t = { 15, 15, 15, 15, 15, 15, 15, 15, 25, 35, 45, 55, 65, 75, 76.25, 77.5, 78.75, 80 }
 			args.RawMagical = args.RawMagical + t[math_max(math_min(args.From.levelData.lvl, 18), 1)]
@@ -1531,35 +1623,35 @@ Damage = {
 		[3302] = function(args)
 			args.RawMagical = args.RawMagical + 30
 		end,
-		[6670] = function(args)
-			if args.TargetIsMinion then
-				args.RawPhysical = args.RawPhysical + 20
-			end
-		end,
-		[2015] = function(args)
-			if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
-				args.RawMagical = args.RawMagical + 60
-			end
-		end,
-		[3087] = function(args)
-			if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
-				if args.TargetIsMinion then
-					args.RawMagical = args.RawMagical + 150
-				else
-					args.RawMagical = args.RawMagical + 90
-				end
-			end
-		end,
+		-- [6670] = function(args)
+			-- if args.TargetIsMinion then
+				-- args.RawPhysical = args.RawPhysical + 20
+			-- end
+		-- end,
+		-- [2015] = function(args)
+			-- if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
+				-- args.RawMagical = args.RawMagical + 60
+			-- end
+		-- end,
+		-- [3087] = function(args)
+			-- if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
+				-- if args.TargetIsMinion then
+					-- args.RawMagical = args.RawMagical + 150
+				-- else
+					-- args.RawMagical = args.RawMagical + 90
+				-- end
+			-- end
+		-- end,
 		[3094] = function(args)
 			if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
 				args.RawMagical = args.RawMagical + 60
 			end
 		end,
-		[3095] = function(args)
-			if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
-				args.RawMagical = args.RawMagical + 100
-			end
-		end,
+		-- [3095] = function(args)
+			-- if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
+				-- args.RawMagical = args.RawMagical + 100
+			-- end
+		-- end,
 		[6699] = function(args)
 			if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
 				args.RawPhysical = args.RawPhysical + 100
@@ -1567,27 +1659,27 @@ Damage = {
 		end,
 		[3057] = function(args)
 			if Buff:HasBuff(args.From, "sheen") then
-				args.RawPhysical = args.RawPhysical + 1 * args.From.baseDamage
+				args.RawPhysical = args.RawPhysical + 1.0 * args.From.baseDamage
 			end
 		end,
 		[6662] = function(args)
 			if Buff:HasBuff(args.From, "6662buff") then
-				args.RawPhysical = args.RawPhysical + 1 * args.From.baseDamage
+				args.RawPhysical = args.RawPhysical + 1.0 * args.From.baseDamage
 			end
 		end,
 		[3078] = function(args)
 			if Buff:HasBuff(args.From, "3078trinityforce") then
-				args.RawPhysical = args.RawPhysical + 2 * args.From.baseDamage
+				args.RawPhysical = args.RawPhysical + 2.0 * args.From.baseDamage
 			end
 		end,
-		[3508] = function(args)
-			if Buff:HasBuff(args.From, "3508buff") then
-				args.RawPhysical = args.RawPhysical + 1.4 * args.From.baseDamage + 0.2 * args.From.bonusDamage
-			end
-		end,
+		-- [3508] = function(args)
+			-- if Buff:HasBuff(args.From, "3508buff") then
+				-- args.RawPhysical = args.RawPhysical + 1.4 * args.From.baseDamage + 0.2 * args.From.bonusDamage
+			-- end
+		-- end,
 		[3100] = function(args)
 			if Buff:HasBuff(args.From, "lichbane") then
-				args.RawMagical = args.RawMagical + 0.75 * args.From.baseDamage + 0.5 * args.From.ap
+				args.RawMagical = args.RawMagical + 0.75 * args.From.baseDamage + 0.45 * args.From.ap
 			end
 		end,
 	},
@@ -1595,7 +1687,7 @@ Damage = {
 	HeroPassiveDamage = {
 		["Ashe"] = function(args)
 			if Buff:HasBuff(args.Target, "ashepassiveslow") then
-				local modCrit = 0.75 + (Item:HasItem(args.From, 3031) and 0.4 or 0)
+				local modCrit = 0.75 + (Item:HasItem(args.From, 3031) and 0.5 or 0)
 				args.RawTotal = args.RawTotal * (1.2 + (modCrit * args.From.critChance))
 			end
 		end,
@@ -2187,7 +2279,7 @@ Data = {
 		Camille = { 3, true, 0.644 },
 		Cassiopeia = { 4, false, 0.647 },
 		Chogath = { 1, true, 0.625 },
-		Corki = { 5, false, 0.638 },
+		Corki = { 5, false, 0.644 },
 		Darius = { 2, true, 0.625 },
 		Diana = { 4, true, 0.625 },
 		DrMundo = { 1, true, 0.67 },
@@ -3926,6 +4018,30 @@ Target = {
 			elseif enemy.distance < attackRange + extraRange then
 				table_insert(enemiesaa, enemy)
 			end
+			if Menu.Orbwalker.General.AttackBarrel:Value() and enemy.charName == "Gangplank" then
+				local validBarrels = {}
+				for _, obj in ipairs(Cached:GetPlants()) do
+					if obj and obj.charName:lower() == "gangplankbarrel" then
+						table.insert(validBarrels, obj)
+					end
+				end
+				for _, barrel in ipairs(validBarrels) do
+					if barrel then
+						if barrel.health <= 1 and barrel.distance <= attackRange + barrel.boundingRadius then
+							return barrel
+						end
+						local time = Attack:GetWindup() + (barrel.distance - myHero.boundingRadius - barrel.boundingRadius) / Attack:GetProjectileSpeed() + Data:GetLatency() / 2
+						local barrelBuffStartTime = Buff:GetBuffStartTime(barrel, "gangplankebarrelactive")
+						if barrel.health <= 2 then
+							local healthDecayRate = enemy.levelData.lvl >= 13 and 0.5 or (enemy.levelData.lvl >= 7 and 1 or 2)
+							local nextHealthDecayTime = Game.Timer() < barrelBuffStartTime + healthDecayRate and barrelBuffStartTime + healthDecayRate or barrelBuffStartTime + healthDecayRate * 2
+							if nextHealthDecayTime <= Game.Timer() + time and barrel.distance <= attackRange + barrel.boundingRadius then
+								return barrel
+							end
+						end
+					end
+				end
+			end
 		end
 		return self:GetTarget(enemiesaa, dmgType, true)
 	end,
@@ -4058,8 +4174,10 @@ Health = {
 	EnemyWardsInAttackRange = {},
 	EnemyMinionsInAttackRange = {},
 	JungleMinionsInAttackRange = {},
+	PlantsMinionsInAttackRange = {},
 	EnemyStructuresInAttackRange = {},
 	CachedWards = {},
+	CachedPlants = {},
 	CachedMinions = {},
 	TargetsHealth = {},
 	AttackersDamage = {},
@@ -4083,6 +4201,7 @@ Health = {
 			self.EnemyWardsInAttackRange = {}
 			self.EnemyMinionsInAttackRange = {}
 			self.JungleMinionsInAttackRange = {}
+			self.PlantsMinionsInAttackRange = {}
 			self.EnemyStructuresInAttackRange = {}
 			self.AttackersDamage = {}
 			self.ActiveAttacks = {}
@@ -4091,6 +4210,7 @@ Health = {
 			self.Handles = {}
 			self.CachedMinions = {}
 			self.CachedWards = {}
+			self.CachedPlants = {}
 		end
 		-- SPELLS
 		for i = 1, #self.Spells do
@@ -4118,6 +4238,13 @@ Health = {
 				table_insert(self.CachedWards, obj)
 			end
 		end
+		local cachedplants = Cached:GetPlants()
+		for i = 1, #cachedplants do
+			local obj = cachedplants[i]
+			if IsInRange(myHero, obj, 2000) then
+				table_insert(self.CachedPlants, obj)
+			end
+		end
 		for i = 1, #self.CachedMinions do
 			local obj = self.CachedMinions[i]
 			local handle = obj.handle
@@ -4130,31 +4257,13 @@ Health = {
 					IsInRange(myHero, obj, attackRange + obj.boundingRadius)
 					or (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(obj))
 				then
-					if (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(obj)) then
-					end
-
-					if obj.charName == "IllaoiMinion" then
-						local value= {LastHitable = true, Unkillable = false, AlmostLastHitable = false,PredictedHP = myHero.totalDamage, Minion = obj, AlmostAlmost = false, Time = GameTimer()}
-					end
-
 					table_insert(self.EnemyMinionsInAttackRange, obj)
 				end
-		
 			elseif team == Data.JungleTeam then
 				if
 					IsInRange(myHero, obj, attackRange + obj.boundingRadius)
 					or (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(obj))
 				then
-					if obj.charName == "SennaSoul" then
-						local value= {LastHitable = true,Unkillable = false,AlmostLastHitable = false,PredictedHP = 1,Minion = obj,	AlmostAlmost = false,Time = GameTimer()}
-						table_insert(Health.FarmMinions, value)
-						table_insert(self.EnemyMinionsInAttackRange, obj)
-					end
-					if obj.charName == "Cherry_Plant_Powerup" then
-						local value= {LastHitable = true,Unkillable = false,AlmostLastHitable = false,PredictedHP = 1,Minion = obj,	AlmostAlmost = false,Time = GameTimer()}
-						table_insert(Health.FarmMinions, value)
-						table_insert(self.EnemyMinionsInAttackRange, obj)
-					end
 					table_insert(self.JungleMinionsInAttackRange, obj)
 				end
 			end
@@ -4163,6 +4272,22 @@ Health = {
 			local obj = self.CachedWards[i]
 			if IsInRange(myHero, obj, attackRange + 35) then
 				table_insert(self.EnemyWardsInAttackRange, obj)
+			end
+		end
+		for i = 1, #self.CachedPlants do
+			local obj = self.CachedPlants[i]
+			if IsInRange(myHero, obj, attackRange + obj.boundingRadius) then
+				if myHero.charName == "Senna" and obj.charName:lower() == "sennasoul" then
+					local time = Attack:GetWindup() + obj.distance / Attack:GetProjectileSpeed()
+					local value= {LastHitable = true, Unkillable = false, AlmostLastHitable = false, PredictedHP = 1, Minion = obj,	AlmostAlmost = false, Time = time}
+					table_insert(self.FarmMinions, value)
+				else
+					if obj.charName:lower() ~= "sennasoul" and obj.charName:lower() ~= "gangplankbarrel" then
+						if Menu.Orbwalker.General.AttackPlants:Value() or obj.team ~= 300 then
+							table_insert(self.PlantsMinionsInAttackRange, obj)
+						end
+					end
+				end
 			end
 		end
 		structures = Object:GetAllStructures(2000)
@@ -4522,6 +4647,16 @@ Health = {
 		return GetTickCount() < self.ShouldWaitTime + 250
 	end,
 
+	GetPlantsTarget = function(self)
+		if #self.PlantsMinionsInAttackRange > 0 then
+			table_sort(self.PlantsMinionsInAttackRange, function(a, b)
+				return a.maxHealth > b.maxHealth
+			end)
+			return self.PlantsMinionsInAttackRange[1]
+		end
+		return nil
+	end,
+
 	GetJungleTarget = function(self)
 		if #self.JungleMinionsInAttackRange > 0 then
 			table_sort(self.JungleMinionsInAttackRange, function(a, b)
@@ -4680,7 +4815,7 @@ do
 		end
 	end)
 
-	-- local AttackKey = Menu.Main.AttackTKey
+	local AttackKey = Menu.Main.AttackTKey
 	local FastKiting = Menu.Orbwalker.General.FastKiting
 
 	_G.Control.Evade = function(a)
@@ -4698,7 +4833,7 @@ do
 
 	_G.Control.Attack = function(target)
 		if target then
-			Cursor:Add(MOUSEEVENTF_RIGHTDOWN, target)
+			Cursor:Add(AttackKey:Key(), target)
 			if FastKiting:Value() then
 				Movement.MoveTimer = 0
 			end
@@ -4805,7 +4940,7 @@ Cursor = {
 			if self.CastPos.charName == "GangplankBarrel" then
 				pos.y=pos.y-((69/1440)*Game.Resolution().y)
 			end
-			if  self.CastPos.charName:lower():find("chaosminion") or  self.CastPos.charName:lower():find("orderminion") then
+			if self.CastPos.charName:lower():find("chaosminion") or self.CastPos.charName:lower():find("orderminion") then
 				pos.y=pos.y-((25/1440)*Game.Resolution().y)
 			end
 		else
@@ -4819,7 +4954,7 @@ Cursor = {
 
 	StepPressKey = function(self)
 		if self.CastPos.type then
-			if self.CastPos.type ~= Obj_AI_Hero then
+			if self.CastPos.type ~= Obj_AI_Hero or self.CastPos.charName == "GangplankBarrel" then
 				if Control.IsKeyDown(HK_TCO) then
 					Control.KeyUp(HK_TCO)
 				end
@@ -5096,7 +5231,7 @@ Orbwalker = {
 		end
 		self.IsNone = self:HasMode(ORBWALKER_MODE_NONE)
 		self.Modes = self:GetModes()
-		if self:HasMode(ORBWALKER_MODE_COMBO) then
+		if self:HasMode(ORBWALKER_MODE_COMBO) and not myHero.dead then
 			Control.KeyDown(HK_TCO)
 		else
 			Control.KeyUp(HK_TCO)
@@ -5292,6 +5427,10 @@ Orbwalker = {
 			end
 		end
 		if self.Modes[ORBWALKER_MODE_LANECLEAR] then
+			local plants = Health:GetPlantsTarget()
+			if plants ~= nil then
+				return plants
+			end
 			return Health:GetLaneClearTarget()
 		end
 		if self.Modes[ORBWALKER_MODE_HARASS] then
@@ -5423,6 +5562,7 @@ _G.SDK = {
 	Attack = Attack,
 	Orbwalker = Orbwalker,
 	Cached = Cached,
+	Movement = Movement,
 	DAMAGE_TYPE_PHYSICAL = DAMAGE_TYPE_PHYSICAL,
 	DAMAGE_TYPE_MAGICAL = DAMAGE_TYPE_MAGICAL,
 	DAMAGE_TYPE_TRUE = DAMAGE_TYPE_TRUE,
