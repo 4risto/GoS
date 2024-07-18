@@ -1,4 +1,4 @@
-local __version__ = 3.046
+local __version__ = 3.047
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -1580,7 +1580,7 @@ Damage = {
 		["Varus"] = function(args)
 			local level = args.From:GetSpellData(_W).level
 			if level > 0 then
-				args.RawMagical = args.RawMagical + 1 + 6 * level + 0.35 * args.From.ap
+				args.RawMagical = args.RawMagical + 7 * level + 0.35 * args.From.ap
 			end
 		end,
 		["Viktor"] = function(args)
@@ -1687,7 +1687,7 @@ Damage = {
 		["Ashe"] = function(args)
 			if Buff:HasBuff(args.Target, "ashepassiveslow") then
 				local modCrit = 0.75 + (Item:HasItem(args.From, 3031) and 0.4 or 0)
-				args.RawTotal = args.RawTotal * (1.2 + (modCrit * args.From.critChance))
+				args.RawTotal = args.RawTotal * (1.15 + (modCrit * args.From.critChance))
 			end
 		end,
 		["KogMaw"] = function(args)
@@ -2254,7 +2254,7 @@ Data = {
 		end,
 	},
 
-	--14.09
+	--14.14
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
 		Ahri = { 4, false, 0.668 },
@@ -2267,6 +2267,7 @@ Data = {
 		Aphelios = { 5, false, 0.64 },
 		Ashe = { 5, false, 0.658 },
 		AurelionSol = { 4, false, 0.625 },
+		Aurora = { 4, false, 0.668 },
 		Azir = { 4, true, 0.625 },
 		Bard = { 3, false, 0.625 },
 		Belveth = { 4, true, 0.85 },
