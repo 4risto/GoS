@@ -1,4 +1,4 @@
-local __version__ = 3.047
+local __version__ = 3.048
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -1460,7 +1460,7 @@ Damage = {
 			args.RawPhysical = args.RawTotal
 			local level = args.From.levelData.lvl
 			if Buff:HasBuff(myHero, "zeriqpassiveready") then
-				args.RawMagical = 90 + (110 / 17) * (level - 1) * (0.7025 + 0.0175 * (level - 1)) + args.From.ap * 1.1
+				args.RawMagical = 70 + 5 * level + args.From.ap * 1.1
 			else
 				args.RawMagical = 10 + (15 / 17) * (level - 1) * (0.7025 + 0.0175 * (level-1)) + args.From.ap * 0.03
 			end
@@ -1580,7 +1580,7 @@ Damage = {
 		["Varus"] = function(args)
 			local level = args.From:GetSpellData(_W).level
 			if level > 0 then
-				args.RawMagical = args.RawMagical + 7 * level + 0.35 * args.From.ap
+				args.RawMagical = args.RawMagical + 5 * level + 0.35 * args.From.ap
 			end
 		end,
 		["Viktor"] = function(args)
@@ -1700,10 +1700,10 @@ Damage = {
 			local level = args.From.levelData.lvl
 			if Buff:HasBuff(myHero, "zeriqpassiveready") then
 				args.RawMagical = args.RawMagical
-					+ (1 + (14 / 17) * (level - 1) * (0.7025 + 0.0175 * (level - 1))) / 100 * args.Target.maxHealth
+					+ (1 + (10 / 17) * (level - 1)) / 100 * args.Target.maxHealth
 			else
 				if args.Target.health < 60 + (90 / 17) * (level - 1) + args.From.ap * 0.18 then
-					args.RawMagical = 60 + (90 / 17) * (level - 1) + args.From.ap * 0.18  --args.RawMagical * 6
+					args.RawMagical = 9999 --(Execute targets, < this health)
 				end
 			end
 			if args.Target.team == 300 then
@@ -2254,7 +2254,7 @@ Data = {
 		end,
 	},
 
-	--14.14
+	--14.09
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
 		Ahri = { 4, false, 0.668 },
