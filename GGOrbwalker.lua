@@ -1,4 +1,4 @@
-local __version__ = 3.050
+local __version__ = 3.051
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -643,23 +643,25 @@ end
 Cached = {
 
 	OtherMinions = {
-		"apheliosturret",
-		"gangplankbarrel",
-		"heimertyellow",
-		"heimertblue",
-		"illaoiminion",
-		"jhintrap",
-		"kalistaspawn",
-		"nidaleespear",
-		"sennasoul",
-		"teemomushroom",
-		"yorickwinvisible",
-		"zyragraspingplant",
-		"zyrathornplant",
-		"sru_plant_health",
-		"sru_plant_satchel",
-		"sru_plant_vision",
-		"cherry_plant_powerup"
+		["apheliosturret"] = true,
+		["fiddlestickseffigy"] = true,
+		["gangplankbarrel"] = true,
+		["heimertyellow"] = true,
+		["heimertblue"] = true,
+		["illaoiminion"] = true,
+		["jhintrap"] = true,
+		["kalistaspawn"] = true,
+		["nidaleespear"] = true,
+		["sennasoul"] = true,
+		["teemomushroom"] = true,
+		["yorickwinvisible"] = true,
+		["zyragraspingplant"] = true,
+		["zyrathornplant"] = true,
+		["sru_plant_health"] = true,
+		["sru_plant_satchel"] = true,
+		["sru_plant_vision"] = true,
+		["sru_plant_demon"] = true,
+		["cherry_plant_powerup"] = true
 	},
 
 	Minions = {},
@@ -846,8 +848,10 @@ Cached = {
 			if count and count > 0 and count < 1000 then
 				for i = 1, count do
 					local o = cachedMinions[i]
-					if o and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
-						table_insert(self.Minions, o)
+					if o and o.valid and o.visible and o.isTargetable and not o.dead then
+						if not o.isImmortal or o.charName:lower() == "sru_atakhan" then
+							table_insert(self.Minions, o)
+						end
 					end
 				end
 			end
@@ -867,8 +871,10 @@ Cached = {
 			if count and count > 0 and count < 1000 then
 				for i = 1, count do
 					local o = GameMinion(i)
-					if o and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
-						table_insert(self.TempCachedMinions, o)
+					if o and o.valid and o.visible and o.isTargetable and not o.dead then
+						if not o.isImmortal or o.charName:lower() == "sru_atakhan" then
+							table_insert(self.TempCachedMinions, o)
+						end
 					end
 				end
 			end
@@ -1431,7 +1437,7 @@ Damage = {
 		["Ashe"] = function(args)
 			local level = args.From:GetSpellData(_Q).level
 			if Buff:HasBuff(args.From, "asheqattack") then
-				args.RawTotal = args.RawTotal * (1 + 0.05 * level)
+				args.RawTotal = args.RawTotal * (1.05 + 0.05 * level)
 			end
 		end,
 		["Jayce"] = function(args)
@@ -1580,7 +1586,7 @@ Damage = {
 		["Varus"] = function(args)
 			local level = args.From:GetSpellData(_W).level
 			if level > 0 then
-				args.RawMagical = args.RawMagical + (5 * level + 3) + 0.35 * args.From.ap
+				args.RawMagical = args.RawMagical + 6 * level + 0.35 * args.From.ap
 			end
 		end,
 		["Viktor"] = function(args)
@@ -1688,7 +1694,7 @@ Damage = {
 		["Ashe"] = function(args)
 			if Buff:HasBuff(args.Target, "ashepassiveslow") then
 				local modCrit = 0.75 + (Item:HasItem(args.From, 3031) and 0.4 or 0)
-				args.RawTotal = args.RawTotal * (1.15 + (modCrit * args.From.critChance))
+				args.RawTotal = args.RawTotal * (1.0 + (modCrit * args.From.critChance))
 			end
 		end,
 		["KogMaw"] = function(args)
@@ -4291,17 +4297,16 @@ Health = {
 		end
 		for i = 1, #self.CachedPlants do
 			local obj = self.CachedPlants[i]
+			local objName = obj.charName:lower()
 			if IsInRange(myHero, obj, attackRange + obj.boundingRadius) then
-				if myHero.charName == "Senna" and obj.charName:lower() == "sennasoul" then
+				if myHero.charName == "Senna" and objName == "sennasoul" then
 					local time = Attack:GetWindup() + obj.distance / Attack:GetProjectileSpeed()
 					local value= {LastHitable = true, Unkillable = false, AlmostLastHitable = false, PredictedHP = 1, Minion = obj,	AlmostAlmost = false, Time = time}
 					self.IsLastHitable = true
 					table_insert(self.FarmMinions, value)
-				else
-					if obj.charName:lower() ~= "sennasoul" and obj.charName:lower() ~= "gangplankbarrel" then
-						if Menu.Orbwalker.General.AttackPlants:Value() or obj.team ~= 300 then
-							table_insert(self.PlantsMinionsInAttackRange, obj)
-						end
+				elseif objName ~= "sennasoul" and objName ~= "gangplankbarrel" then
+					if Menu.Orbwalker.General.AttackPlants:Value() or obj.team ~= 300 or objName == "sru_plant_demon" then
+						table_insert(self.PlantsMinionsInAttackRange, obj)
 					end
 				end
 			end
