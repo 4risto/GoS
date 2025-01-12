@@ -1,4 +1,4 @@
-local __version__ = 3.051
+local __version__ = 3.052
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -982,10 +982,9 @@ Cached = {
 				for i = 1, count do
 					local o = GameObject(i)
 					if o and o.type == Obj_AI_Minion and o.isEnemy and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
-						for _, unitName in ipairs(self.OtherMinions) do
-							if o.charName:lower() == unitName then
-								table_insert(self.TempCachedPlants, o)
-							end
+						local charName = o.charName:lower()
+						if self.OtherMinions[charName] then
+							table_insert(self.TempCachedPlants, o)
 						end
 					end
 				end
