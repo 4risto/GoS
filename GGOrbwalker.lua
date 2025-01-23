@@ -1,4 +1,4 @@
-local __version__ = 3.052
+local __version__ = 3.053
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -2260,7 +2260,7 @@ Data = {
 		end,
 	},
 
-	--14.22
+	--15.02
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
 		Ahri = { 4, false, 0.668 },
@@ -2343,6 +2343,7 @@ Data = {
 		Malzahar = { 3, false, 0.625 },
 		Maokai = { 2, true, 0.8 },
 		MasterYi = { 5, true, 0.679 },
+		Mel = { 4, false, 0.625 },
 		Milio = { 3, false, 0.625 },
 		MissFortune = { 5, false, 0.656 },
 		MonkeyKing = { 3, true, 0.69 },
