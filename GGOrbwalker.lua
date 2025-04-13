@@ -1,4 +1,4 @@
-local __version__ = 3.053
+local __version__ = 3.054
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -634,7 +634,7 @@ FlashHelper = {
 
 _G.Control.Flash = function()
 	if Cursor.Step == 0 then
-		Cursor:Add(FlashHelper.Menu.Flashlol:Key(), mousePos)
+		Cursor:Add(FlashHelper.Menu.Flashlol:Key(), myHero.pos:Extended(Vector(mousePos), 600))
 		return
 	end
 	FlashHelper.Flash = FlashHelper.Menu.Flashlol:Key()
@@ -684,7 +684,7 @@ Cached = {
 	WardsSaved = false,
 	PlantsSaved = false,
 	TempCacheBuffer = {m = GameTimer(), w = GameTimer(), t = GameTimer(), p = GameTimer()},
-	TempCacheTimeout = 3,
+	TempCacheTimeout = 1,
 
 	WndMsg = function(self, msg, wParam)
 		local oKeys = {}
@@ -2012,8 +2012,8 @@ Damage = {
 			percentMod = 0.86
 		elseif from.charName == "XinZhao" then
 			baseCriticalDamage = baseCriticalDamage - (0.875 - 0.125 * from:GetSpellData(_W).level)
-		elseif from.charName == "Yasuo" then
-			percentMod = 0.9
+		-- elseif from.charName == "Yasuo" then
+			-- percentMod = 0.9
 		end
 		return baseCriticalDamage * percentMod
 	end,
@@ -2260,7 +2260,7 @@ Data = {
 		end,
 	},
 
-	--15.02
+	--15.07
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
 		Ahri = { 4, false, 0.668 },
@@ -2384,7 +2384,7 @@ Data = {
 		Shaco = { 4, true, 0.694 },
 		Shen = { 1, true, 0.751 },
 		Shyvana = { 2, true, 0.658 },
-		Singed = { 1, true, 0.625 },
+		Singed = { 1, true, 0.7 },
 		Sion = { 1, true, 0.679 },
 		Sivir = { 5, false, 0.625 },
 		Skarner = { 2, true, 0.625 },
@@ -2560,7 +2560,6 @@ Data = {
 		["XinZhao"] = {{ Slot = _Q, Key = HK_Q }},
 		["Yorick"] = {{ Slot = _Q, Key = HK_Q }},
 	},
-	
 
 	WndMsg = function(self, msg, wParam)
 		if not self.AttackResets then
@@ -2633,7 +2632,6 @@ Data = {
 			end
 		end
 	end,
-	
 
 	IdEquals = function(self, a, b)
 		if a == nil or b == nil then
@@ -3047,7 +3045,7 @@ Spell = {
 				if GameCanUseSpell(self.spell) ~= 0 and myHero:GetSpellData(self.spell).currentCd > 0.5 then
 					return
 				end
-				local targets = Object:GetEnemyMinions(self.Range, false, true)
+				local targets = Object:GetEnemyMinions(self.Range, false, false)
 				for i = 1, #targets do
 					local target = targets[i]
 					table_insert(
@@ -3398,7 +3396,7 @@ Object = {
 		["kindredrnodeathbuff"] = true,
 		["ChronoShift"] = true,
 		["UndyingRage"] = true,
-		["JaxCounterStrike"] = true,
+		["JaxE"] = true,
 	},
 
 	AllyBuildings = {},
@@ -3748,6 +3746,10 @@ Object = {
 }
 
 Object:OnEnemyHeroLoad(function(args)
+	if args.charName == "Mel" then
+		Object.UndyingBuffs["MelWReflect"] = true
+		return
+	end
 	if args.charName == "Kayle" then
 		Object.UndyingBuffs["KayleR"] = true
 		return
@@ -4938,15 +4940,17 @@ Cursor = {
 		self.CastPos = castPos
 		if self.CastPos ~= nil then
 			self.IsTarget = self.CastPos.pos ~= nil
+			self.correctedCastPos = self.CastPos
 			self.IsMouseClick = key == MOUSEEVENTF_RIGHTDOWN
 			self.Timer = GetTickCount() + MenuDelay:Value()
 			self:StepSetToCastPos()
+			self:StepPressKey()
 		end
 	end,
 
 	StepReady = function(self)
 		if FlashHelper.Flash then
-			self:Add(FlashHelper.Flash,  mousePos)
+			self:Add(FlashHelper.Flash, myHero.pos:Extended(Vector(mousePos), 600))
 			FlashHelper.Flash = nil
 		elseif EvadeSupport then
 			self:Add(MOUSEEVENTF_RIGHTDOWN, EvadeSupport)
@@ -4968,9 +4972,8 @@ Cursor = {
 			pos = (self.CastPos.z ~= nil) and Vector(self.CastPos.x, self.CastPos.y or 0, self.CastPos.z):To2D()
 				or Vector({ x = self.CastPos.x, y = self.CastPos.y })
 		end
-
+		self.correctedCastPos = pos
 		Control.SetCursorPos(pos.x, pos.y)
-		self:StepPressKey()
 	end,
 
 	StepPressKey = function(self)
@@ -4986,8 +4989,17 @@ Cursor = {
 			Control.mouse_event(MOUSEEVENTF_RIGHTUP)
 		else
 			for _, key in ipairs(self.Keys) do
-				Control.KeyDown(key)
-				Control.KeyUp(key)
+				if (GetDistance(Game.cursorPos(), self.correctedCastPos)) > 5 then
+					--print("error cursor position mismatch" ..GameTimer())
+					self:StepSetToCursorPos()
+					return
+				end
+				if Control.IsKeyDown(key) and myHero.activeSpell.isCharging then
+					Control.KeyUp(key)
+				else
+					Control.KeyDown(key)
+					Control.KeyUp(key)
+				end
 			end
 		end
 		self.Step = 1
