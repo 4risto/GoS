@@ -1,4 +1,4 @@
-local __version__ = 3.054
+local __version__ = 3.055
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -2558,7 +2558,7 @@ Data = {
 		["Volibear"] = {{ Slot = _Q, Key = HK_Q }},
 		["MonkeyKing"] = {{ Slot = _Q, Key = HK_Q }},
 		["XinZhao"] = {{ Slot = _Q, Key = HK_Q }},
-		["Yorick"] = {{ Slot = _Q, Key = HK_Q }},
+		["Yorick"] = {{ Slot = _Q, Key = HK_Q, Name = "YorickQ" }},
 	},
 
 	WndMsg = function(self, msg, wParam)
