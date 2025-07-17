@@ -1,4 +1,4 @@
-local __version__ = 3.056
+local __version__ = 3.057
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -1433,10 +1433,16 @@ Damage = {
 	},
 
 	HeroStaticDamage = {
+		["Yunara"] = function(args)
+			local level = args.From:GetSpellData(_Q).level
+			if level > 0 then
+				args.RawMagical = args.RawMagical +  5 * level + 0.2 * args.From.ap
+			end
+		end,
 		["Ashe"] = function(args)
 			local level = args.From:GetSpellData(_Q).level
 			if Buff:HasBuff(args.From, "asheqattack") then
-				args.RawTotal = args.RawTotal * (1.05 + 0.05 * level)
+				args.RawTotal = args.RawTotal * (1.025 + 0.075 * level)
 			end
 		end,
 		["Jayce"] = function(args)
@@ -1450,7 +1456,7 @@ Damage = {
 			if Buff:HasBuff(args.From, "neekowpassiveready") then
 				local level = args.From:GetSpellData(_W).level
 				if level > 0 then
-					args.RawMagical = args.RawMagical + 5 + 35 * level + 0.6 * args.From.ap
+					args.RawMagical = args.RawMagical + (35 * level - 5) + 0.6 * args.From.ap
 				end	
 			end
 		end,
@@ -1508,12 +1514,12 @@ Damage = {
 			end
 		end,
 		["Hwei"] = function(args)
-			if Buff:HasBuff(args.From, "HweiWE") then
+			if Buff:HasBuff(args.From, "HweiWEBuffCounter") then
 				local amnt = 0
 				if(args.From:GetSpellData(_Q).name == "HweiQ") then
-					amnt = ({25, 35, 45, 55, 65})[args.From:GetSpellData(_W).level] + (args.From.ap * 0.2)
+					amnt = ({20, 30, 40, 50, 60})[args.From:GetSpellData(_W).level] + (args.From.ap * 0.15)
 				else
-					amnt = 25 + (args.From.ap * 0.2)
+					amnt = 20 + (args.From.ap * 0.15)
 				end
 				args.RawMagical = args.RawMagical + amnt
 			end
@@ -2015,7 +2021,7 @@ Damage = {
 		-- elseif from.charName == "Yasuo" then
 			-- percentMod = 0.9
 		elseif from.charName == "Yunara" then
-			baseCriticalDamage = baseCriticalDamage + baseCriticalDamage * (0.1 + myHero.ap * 0.001)
+			baseCriticalDamage = baseCriticalDamage * (1.1 + 0.001 * from.ap)
 		end
 		return baseCriticalDamage * percentMod
 	end,
@@ -2181,7 +2187,12 @@ Data = {
 	},
 
 	SpecialMissileSpeeds = {
-
+		["Yunara"] = function()
+			if Buff:HasBuff(myHero, "YunaraQ") then
+				return 10000
+			end
+			return nil
+		end,
 		["Hwei"] = function()
 			return 3470
 		end,
@@ -2262,7 +2273,7 @@ Data = {
 		end,
 	},
 
-	--15.07
+	--25.14
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
 		Ahri = { 4, false, 0.668 },
@@ -2273,7 +2284,7 @@ Data = {
 		Amumu = { 1, true, 0.736 },
 		Anivia = { 4, false, 0.625 },
 		Annie = { 4, false, 0.61 },
-		Aphelios = { 5, false, 0.64 },
+		Aphelios = { 5, false, 0.665 },
 		Ashe = { 5, false, 0.658 },
 		AurelionSol = { 4, false, 0.625 },
 		Aurora = { 4, false, 0.668 },
@@ -2287,7 +2298,7 @@ Data = {
 		Caitlyn = { 5, false, 0.681 },
 		Camille = { 3, true, 0.644 },
 		Cassiopeia = { 4, false, 0.647 },
-		Chogath = { 1, true, 0.625 },
+		Chogath = { 1, true, 0.658 },
 		Corki = { 5, false, 0.644 },
 		Darius = { 2, true, 0.625 },
 		Diana = { 4, true, 0.625 },
@@ -2369,7 +2380,7 @@ Data = {
 		Qiyana = { 4, true, 0.688 },
 		Quinn = { 5, false, 0.668 },
 		Rakan = { 3, true, 0.635 },
-		Rammus = { 1, true, 0.656 },
+		Rammus = { 1, true, 0.7 },
 		RekSai = { 2, true, 0.667 },
 		Rell = { 1, true, 0.625 },
 		Renata = { 2, false, 0.625 },
@@ -2426,7 +2437,7 @@ Data = {
 		Yasuo = { 4, true, 0.697 },
 		Yone = { 4, true, 0.625 },
 		Yorick = { 2, true, 0.625 },
-		Yunara = { 4, false, 0.734},
+		Yunara = { 5, false, 0.65 },
 		Yuumi = { 3, false, 0.625 },
 		Zac = { 1, true, 0.736 },
 		Zed = { 4, true, 0.651 },
@@ -2456,6 +2467,8 @@ Data = {
 	},
 
 	IsAttackSpell = {
+		["YunaraQCrit"] = true,
+		["YunaraQCrit2"] = true,
 		["ViktorQBuff"] = true,
 		["CaitlynPassiveMissile"] = true,
 		["GarenQAttack"] = true,
@@ -2516,6 +2529,7 @@ Data = {
 	},
 
 	AttackResets = {
+		["Ashe"] = {{ Slot = _Q, Key = HK_Q }},
 		["Blitzcrank"] = {{ Slot = _E, Key = HK_E }},
 		["Camille"] = {{ Slot = _Q, Key = HK_Q }},
 		["Chogath"] = {{ Slot = _E, Key = HK_E }},
@@ -2562,6 +2576,7 @@ Data = {
 		["MonkeyKing"] = {{ Slot = _Q, Key = HK_Q }},
 		["XinZhao"] = {{ Slot = _Q, Key = HK_Q }},
 		["Yorick"] = {{ Slot = _Q, Key = HK_Q, Name = "YorickQ" }},
+		["Yunara"] = {{ Slot = _Q, Key = HK_Q }},
 	},
 
 	WndMsg = function(self, msg, wParam)
