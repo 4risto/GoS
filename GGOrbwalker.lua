@@ -2014,6 +2014,8 @@ Damage = {
 			baseCriticalDamage = baseCriticalDamage - (0.875 - 0.125 * from:GetSpellData(_W).level)
 		-- elseif from.charName == "Yasuo" then
 			-- percentMod = 0.9
+		elseif from.charName == "Yunara" then
+			baseCriticalDamage = baseCriticalDamage + baseCriticalDamage * (0.1 + myHero.ap * 0.001)
 		end
 		return baseCriticalDamage * percentMod
 	end,
@@ -2424,6 +2426,7 @@ Data = {
 		Yasuo = { 4, true, 0.697 },
 		Yone = { 4, true, 0.625 },
 		Yorick = { 2, true, 0.625 },
+		Yunara = { 4, false, 0.734},
 		Yuumi = { 3, false, 0.625 },
 		Zac = { 1, true, 0.736 },
 		Zed = { 4, true, 0.651 },
