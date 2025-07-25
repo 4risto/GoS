@@ -1,4 +1,4 @@
-local __version__ = 3.057
+local __version__ = 3.058
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -2101,6 +2101,12 @@ Data = {
 	},
 
 	SpecialWindup = {
+		["Yunara"] = function()
+			if Buff:HasBuff(myHero, "YunaraQ") then
+				return 0.09
+			end
+			return nil
+		end,
 		["TwistedFate"] = function()
 			if
 				Buff:HasBuff(myHero, "BlueCardPreAttack")
