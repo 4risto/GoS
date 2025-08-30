@@ -1,4 +1,4 @@
-local __version__ = 3.058
+local __version__ = 3.059
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -331,16 +331,20 @@ local function GetBuffTypes(menu)
 	};
 	--]]
 	return {
+		[11] = menu.Slow:Value(),
 		[5] = menu.Stun:Value(),
 		[12] = menu.Snare:Value(),
+		[9] = menu.Berserk:Value(),
 		[25] = menu.Supress:Value(),
-		[30] = menu.Knockup:Value(),
-		[22] = menu.Fear:Value(),
+		--[30] = menu.Knockup:Value(),
+		[29] = menu.Flee:Value(),
 		[23] = menu.Charm:Value(),
 		[8] = menu.Taunt:Value(),
-		[31] = menu.Knockback:Value(),
+		--[31] = menu.Knockback:Value(),
 		[26] = menu.Blind:Value(),
 		[32] = menu.Disarm:Value(),
+		[34] = menu.Drowsy:Value(),
+		[35] = menu.Asleep:Value(),
 	}
 end
 
@@ -1102,17 +1106,20 @@ Menu = {
             self.SummonerSpells = self.Main:MenuElement({id = 'SummonerSpells', name = 'Summoner Spells', type = MENU, leftIcon = "/Gamsteron_Spell_SummonerDot.png"})
             self.SummonerSpells:MenuElement({id = 'Cleanse', name = 'Cleanse', type = MENU, leftIcon = '/Gamsteron_Spell_SummonerBoost.png'})
             self.SummonerSpells.Cleanse:MenuElement({id = 'BuffTypes', name = 'Buff Types', type = MENU})
-            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Slow', name = 'Slow: nasus w', value = true})--SLOW = 10 -> nasus W, zilean E
+            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Slow', name = 'Slow: nasus w', value = true})--SLOW = 11 -> nasus W, zilean E
             self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Stun', name = 'Stun: sona r', value = true})--STUN = 5
-            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Snare', name = 'Snare: xayah e', value = true})--SNARE = 11
-            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Supress', name = 'Supress: warwick r', value = true})--SUPRESS = 24
-            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Knockup', name = 'Knockup: yasuo q3', value = true})--KNOCKUP = 29
-            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Fear', name = 'Fear: fiddle q', value = true})--FEAR = 21 -> fiddle Q, ...
-            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Charm', name = 'Charm: ahri e', value = true})--CHARM = 22 -> ahri E, ...
+            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Snare', name = 'Snare: xayah e', value = true})--SNARE = 12
+            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Berserk', name = 'Berserk: renata r', value = true})--Berserk = 9
+            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Supress', name = 'Supress: warwick r', value = false})--SUPRESS = 25
+            --self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Knockup', name = 'Knockup: yasuo q3', value = true})--KNOCKUP = 30
+            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Flee', name = 'Flee: fiddle q', value = true})--FLEE = 29 -> fiddle Q, ...
+            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Charm', name = 'Charm: ahri e', value = true})--CHARM = 23 -> ahri E, ...
             self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Taunt', name = 'Taunt: rammus e', value = true})--TAUNT = 8 -> rammus E, ...
-            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Knockback', name = 'Knockback: alistar w', value = true})--KNOCKBACK = 30 -> alistar W, lee sin R, ...
-            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Blind', name = 'Blind: teemo q', value = true})--BLIND = 25 -> teemo Q
-            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Disarm', name = 'Disarm: lulu w', value = true})--DISARM = 31 -> Lulu W
+            --self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Knockback', name = 'Knockback: alistar w', value = true})--KNOCKBACK = 31 -> alistar W, lee sin R, ...
+            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Blind', name = 'Blind: teemo q', value = true})--BLIND = 26 -> teemo Q
+            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Disarm', name = 'Disarm: lulu w', value = true})--DISARM = 32 -> Lulu W
+            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Drowsy', name = 'Drowsy', value = true})--Drowsy = 34
+            self.SummonerSpells.Cleanse.BuffTypes:MenuElement({id = 'Asleep', name = 'Asleep', value = true})--ASleep = 35
             self.SummonerSpells.Cleanse:MenuElement({id = 'Enabled', name = 'Enabled', value = true})
             self.SummonerSpells.Cleanse:MenuElement({id = 'Count', name = 'Enemies Count', value = 1, min = 0, max = 5, step = 1})
             self.SummonerSpells.Cleanse:MenuElement({id = 'Distance', name = 'Enemies Distance < X', value = 1200, min = 0, max = 1500, step = 50})
@@ -1127,18 +1134,21 @@ Menu = {
             self.Main:MenuElement({id = 'Items', name = 'Items', type = MENU, leftIcon = '/Gamsteron_Item_3139.png'})
             self.Main.Items:MenuElement({id = 'Qss', name = 'QSS | Mercurial Scimitar | Silvermere Dawn', type = MENU})
             self.Main.Items.Qss:MenuElement({id = 'BuffTypes', name = 'Buff Types', type = MENU})
-            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Slow', name = 'Slow: nasus w', value = true})--SLOW = 10 -> nasus W, zilean E
+            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Slow', name = 'Slow: nasus w', value = true})--SLOW = 11 -> nasus W, zilean E
             self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Stun', name = 'Stun: sona r', value = true})--STUN = 5
-            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Snare', name = 'Snare: xayah e', value = true})--SNARE = 11
-            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Supress', name = 'Supress: warwick r', value = true})--SUPRESS = 24
-            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Knockup', name = 'Knockup: yasuo q3', value = true})--KNOCKUP = 29
-            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Fear', name = 'Fear: fiddle q', value = true})--FEAR = 21 -> fiddle Q, ...
-            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Charm', name = 'Charm: ahri e', value = true})--CHARM = 22 -> ahri E, ...
+            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Snare', name = 'Snare: xayah e', value = true})--SNARE = 12
+            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Berserk', name = 'Berserk: renata r', value = true})--Berserk = 9
+            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Supress', name = 'Supress: warwick r', value = true})--SUPRESS = 25
+            --self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Knockup', name = 'Knockup: yasuo q3', value = true})--KNOCKUP = 30
+            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Flee', name = 'Flee: fiddle q', value = true})--FLEE = 29 -> fiddle Q, ...
+            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Charm', name = 'Charm: ahri e', value = true})--CHARM = 23 -> ahri E, ...
             self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Taunt', name = 'Taunt: rammus e', value = true})--TAUNT = 8 -> rammus E, ...
-            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Knockback', name = 'Knockback: alistar w', value = true})--KNOCKBACK = 30 -> alistar W, lee sin R, ...
-            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Blind', name = 'Blind: teemo q', value = true})--BLIND = 25 -> teemo Q
-            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Disarm', name = 'Disarm: lulu w', value = true})--DISARM = 31 -> Lulu W
-            self.Main.Items.Qss:MenuElement({id = 'Enabled', name = 'Enabled', value = true})
+            --self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Knockback', name = 'Knockback: alistar w', value = true})--KNOCKBACK = 31 -> alistar W, lee sin R, ...
+            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Blind', name = 'Blind: teemo q', value = true})--BLIND = 26 -> teemo Q
+            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Disarm', name = 'Disarm: lulu w', value = true})--DISARM = 32 -> Lulu W
+            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Drowsy', name = 'Drowsy', value = true})--Drowsy = 34
+            self.Main.Items.Qss.BuffTypes:MenuElement({id = 'Asleep', name = 'Asleep', value = true})--Asleep = 35
+			self.Main.Items.Qss:MenuElement({id = 'Enabled', name = 'Enabled', value = true})
             self.Main.Items.Qss:MenuElement({id = 'Count', name = 'Enemies Count', value = 1, min = 0, max = 5, step = 1})
             self.Main.Items.Qss:MenuElement({id = 'Distance', name = 'Enemies Distance < X', value = 1200, min = 0, max = 1500, step = 50})
             self.Main.Items.Qss:MenuElement({id = 'Duration', name = 'Buff Duration > X', value = 500, min = 0, max = 1000, step = 50})
@@ -1591,7 +1601,7 @@ Damage = {
 		["Varus"] = function(args)
 			local level = args.From:GetSpellData(_W).level
 			if level > 0 then
-				args.RawMagical = args.RawMagical + 6 * level + 0.35 * args.From.ap
+				args.RawMagical = args.RawMagical + (8 * level - 2) + 0.35 * args.From.ap
 			end
 		end,
 		["Viktor"] = function(args)
@@ -2535,100 +2545,94 @@ Data = {
 	},
 
 	AttackResets = {
-		["Ashe"] = {{ Slot = _Q, Key = HK_Q }},
-		["Blitzcrank"] = {{ Slot = _E, Key = HK_E }},
-		["Camille"] = {{ Slot = _Q, Key = HK_Q }},
-		["Chogath"] = {{ Slot = _E, Key = HK_E }},
-		["Darius"] = {{ Slot = _W, Key = HK_W }},
-		["DrMundo"] = {{ Slot = _E, Key = HK_E }},
-		["Elise"] = {{ Slot = _W, Key = HK_W, Name = "EliseSpiderW" }},
-		["Fiora"] = {{ Slot = _E, Key = HK_E }},
-		["Fizz"] = {{ Slot = _W, Key = HK_W }},
-		["Garen"] = {{ Slot = _Q, Key = HK_Q }},
-		["Graves"] = {{ Slot = _E, Key = HK_E, OnCast = true, CanCancel = true }},
-		["Gwen"] = {{ Slot = _E, Key = HK_E, OnCast = true }},
-		["Kassadin"] = {{ Slot = _W, Key = HK_W }},
-		["Illaoi"] = {{ Slot = _W, Key = HK_W }},
-		["Jax"] = {{ Slot = _W, Key = HK_W }},
-		["Jayce"] = {{ Slot = _W, Key = HK_W, Name = "JayceHyperCharge" }},
-		["Kayle"] = {{ Slot = _E, Key = HK_E }},
-		["Katarina"] = {{ Slot = _E, Key = HK_E, CanCancel = true, OnCast = true }},
-		["Kindred"] = {{ Slot = _Q, Key = HK_Q }},
-		["KSante"] = {
-			{ Slot = _E, Key = HK_E, CanCancel = true, OnCast = true },
-			{ Slot = _Q, Key = HK_Q }  
+		["Aatrox"] = { { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true } },
+		["Ashe"] = { { Slot = _Q, Key = HK_Q  } },
+		["Blitzcrank"] = { { Slot = _E, Key = HK_E } },
+		["Camille"] = { { Slot = _Q, Key = HK_Q } },
+		["Chogath"] = { { Slot = _E, Key = HK_E } },
+		["Darius"] = { { Slot = _W, Key = HK_W } },
+		["DrMundo"] = { { Slot = _E, Key = HK_E } },
+		["Ekko"] = { { Slot = _E, Key = HK_E, Buff = { ["ekkoeattackbuff"] = true }, CanCancel = true } },
+		["Elise"] = { { Slot = _W, Key = HK_W, Name = "EliseSpiderW" } },
+		["Fiora"] = { { Slot = _E, Key = HK_E } },
+		["Fizz"] = { { Slot = _W, Key = HK_W } },
+		["Garen"] = { { Slot = _Q, Key = HK_Q } },
+		["Graves"] = { { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true } },
+		["Gwen"] = {{ Slot = _E, Key = HK_E, OnCast = true, CanCancel = true } },
+		["Kassadin"] = {{ Slot = _W, Key = HK_W } },
+		["Illaoi"] = { { Slot = _W, Key = HK_W } },
+		["Jax"] = { { Slot = _W, Key = HK_W } },
+		["Jayce"] = { { Slot = _W, Key = HK_W, Name = "JayceHyperCharge" } },
+		["KSante"] = { { Slot = _Q, Key = HK_Q } },
+		["Kayle"] = { { Slot = _E, Key = HK_E } },
+		["Katarina"] = { { Slot = _E, Key = HK_E, CanCancel = true, OnCast = true } },
+		["Kindred"] = { { Slot = _Q, Key = HK_Q, OnCast = true, CanCancel = true } },
+		["Leona"] = { { Slot = _Q, Key = HK_Q } },
+		["Lucian"] = { { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true } },
+		["Malphite"] = { { Slot = _W, Key = HK_W } },		
+		["MasterYi"] = { { Slot = _W, Key = HK_W } },
+		["Nasus"] = { { Slot = _Q, Key = HK_Q } },
+		["Nautilus"] = { { Slot = _W, Key = HK_W } },
+		["Nilah"] = { { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true } },
+		["Nidalee"] = { { Slot = _Q, Key = HK_Q, Name = "Takedown" } },
+		["Olaf"] = { { Slot = _W, Key = HK_W } },
+		["Quinn"] = { { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true } },
+		["RekSai"] = { { Slot = _Q, Key = HK_Q, Name = "RekSaiQ" } },
+		["Renekton"] = { { Slot = _W, Key = HK_W } },
+		["Rengar"] = { { Slot = _Q, Key = HK_Q } },
+		["Sejuani"] = { { Slot = _E, Key = HK_E, ActiveCheck = true, SpellName = "SejuaniE2" } },
+		["Set"] = {{ Slot = _Q, Key = HK_Q } },
+		["Shyvana"] = {{ Slot = _Q, Key = HK_Q } },
+		["Sivir"] = { { Slot = _W, Key = HK_W } },
+		["Talon"] = { { Slot = _Q, Key = HK_Q, OnCast = true, CanCancel = true } },
+		["Trundle"] = { { Slot = _Q, Key = HK_Q } },
+		["TwistedFate"] = { 
+			{ Slot = _W, Key = HK_W, CanCancel = true, Name = "GoldCardLock", Buff = { ["goldcardpreattack"] = true } },
+			{ Slot = _W, Key = HK_W, CanCancel = true, Name = "BlueCardLock", Buff = { ["bluecardpreattack"] = true } },
+			{ Slot = _W, Key = HK_W, CanCancel = true, Name = "RedCardLock", Buff = { ["redcardpreattack"] = true } },
 		},
-		["Leona"] = {{ Slot = _Q, Key = HK_Q }},
-		["Lucian"] = {{ Slot = _E, Key = HK_E, OnCast = true, CanCancel = true, Buff = { ["lucianpassivebuff"] = true }}},
-		["MasterYi"] = {{ Slot = _W, Key = HK_W }},
-		--["Mordekaiser"] = {{ Slot = _Q, Key = HK_Q }},
-		["Nautilus"] = {{ Slot = _W, Key = HK_W }},
-		["Nidalee"] = {{ Slot = _Q, Key = HK_Q, Name = "Takedown" }},
-		["Nasus"] = {{ Slot = _Q, Key = HK_Q }},
-		["Olaf"] = {{ Slot = _W, Key = HK_W }},
-		["RekSai"] = {{ Slot = _Q, Key = HK_Q, Name = "RekSaiQ" }},
-		["Renekton"] = {{ Slot = _W, Key = HK_W }},
-		["Rengar"] = {{ Slot = _Q, Key = HK_Q }},
-		--["Riven"] = {{ Slot = _Q, Key = HK_Q }},
-		-- RIVEN BUFFS ["Riven"] = {'riventricleavesoundone', 'riventricleavesoundtwo', 'riventricleavesoundthree'},
-		["Sejuani"] = {{ Slot = _E, Key = HK_E, ReadyCheck = true, ActiveCheck = true, SpellName = "SejuaniE2" }},
-		["Shyvana"] = {{ Slot = _Q, Key = HK_Q }},
-		["Sivir"] = {{ Slot = _W, Key = HK_W }},
-		["Trundle"] = {{ Slot = _Q, Key = HK_Q }},
-		["Talon"] = {{ Slot = _Q, Key = HK_Q }},
-		["Vayne"] = {{ Slot = _Q, Key = HK_Q, Buff = { ["vaynetumblebonus"] = true }, CanCancel = true }},
-		["Vi"] = {{ Slot = _E, Key = HK_E }},
-		["Volibear"] = {{ Slot = _Q, Key = HK_Q }},
-		["MonkeyKing"] = {{ Slot = _Q, Key = HK_Q }},
-		["XinZhao"] = {{ Slot = _Q, Key = HK_Q }},
-		["Yorick"] = {{ Slot = _Q, Key = HK_Q, Name = "YorickQ" }},
-		["Yunara"] = {{ Slot = _Q, Key = HK_Q }},
+		["Vayne"] = { { Slot = _Q, Key = HK_Q, Buff = { ["vaynetumblebonus"] = true }, CanCancel = true }},
+		["Vi"] = { { Slot = _E, Key = HK_E } },
+		["Volibear"] = { { Slot = _Q, Key = HK_Q } },
+		["MonkeyKing"] = { { Slot = _Q, Key = HK_Q } },
+		["XinZhao"] = { { Slot = _Q, Key = HK_Q } },
+		["Yorick"] = { { Slot = _Q, Key = HK_Q, Name = "YorickQ" } },
+		["Yunara"] = {
+			{ Slot = _Q, Key = HK_Q },
+			{ Slot = _E, Key = HK_E, Name = "YunaraE2", CanCancel = true, OnCast = true },
+			{ Slot = _R, Key = HK_R, BlockBuff = "yunaraq" },
+		},
 	},
-
+	-- AA reset logic updated by zgjfjfl. Please report any errors found.
 	WndMsg = function(self, msg, wParam)
-		if not self.AttackResets then
+		if self.AttackResetsList == nil then
 			return
 		end
-	
-		local championAttackResets = self.AttackResets[myHero.charName]
-		if not championAttackResets then
+
+		if self.AttackResetSuccess or Control.IsKeyDown(HK_LUS) or GameIsChatOpen() then
 			return
 		end
-	
-		for _, attackReset in ipairs(championAttackResets) do
-			local AttackResetKey = attackReset.Key
-			local AttackResetActiveSpell = attackReset.ActiveCheck
-			local AttackResetIsReady = attackReset.ReadyCheck
-			local AttackResetName = attackReset.Name
-			local AttackResetSpellName = attackReset.SpellName
-	
-			if
-				not self.AttackResetSuccess
-				and not Control.IsKeyDown(8)
-				and not GameIsChatOpen()
-				and wParam == AttackResetKey
-			then
-				local checkNum = Object.IsRiven and 400 or 600
-				if GetTickCount() <= self.AttackResetTimer + checkNum then
-					return
-				end
-				if AttackResetIsReady and GameCanUseSpell(attackReset.Slot) ~= 0 then
-					return
-				end
-				local spellData = myHero:GetSpellData(attackReset.Slot)
-				if
-					(Object.IsRiven or spellData.mana <= myHero.mana)
-					and spellData.currentCd == 0
-					and (not AttackResetName or spellData.name == AttackResetName)
+
+		for _, AttackReset in ipairs(self.AttackResetsList) do
+			if wParam == AttackReset.Key then
+				--Add a 600ms cooldown to prevent spamming the reset key
+				if GetTickCount() <= self.AttackResetKeyTimer + 600 then return end
+
+				if AttackReset.BlockBuff and Buff:HasBuff(myHero, AttackReset.BlockBuff) then return end
+
+				local spellData = myHero:GetSpellData(AttackReset.Slot)
+				if 
+					spellData.level > 0 and GameCanUseSpell(AttackReset.Slot) == 0 
+					and (not AttackReset.Name or spellData.name == AttackReset.Name)
 				then
-					if AttackResetActiveSpell then
-						self.AttackResetTimer = GetTickCount()
+					--print('Reset Spell.name: ' .. spellData.name)
+					self.AttackResetKeyTimer = GetTickCount()
+					if AttackReset.ActiveCheck then -- Preserve the original logic For Sejuani E
 						local startTime = GetTickCount() + 400
 						Action:Add(function()
 							local s = myHero.activeSpell
-							if s and s.valid and s.name == AttackResetSpellName then
-								self.AttackResetTimer = GetTickCount()
-								self.AttackResetSuccess = true
+							if s and s.valid and s.name == AttackReset.SpellName then
+								self.ActiveAttackReset = AttackReset
 								return true
 							end
 							if GetTickCount() < startTime then
@@ -2638,8 +2642,10 @@ Data = {
 						end)
 						return
 					end
-					self.AttackResetTimer = GetTickCount()
-					if Object.IsKindred then
+					
+					self.ActiveAttackReset = AttackReset -- to 'CanResetAttack()' processing. ('Attack.Reset' check it)
+					
+					if Object.IsKindred then -- Preserve the original logic
 						Orbwalker:SetMovement(false)
 						local setTime = GetTickCount() + 550
 						Action:Add(function()
@@ -2651,10 +2657,44 @@ Data = {
 						end)
 						return
 					end
-					self.AttackResetSuccess = true
+					
+					return
 				end
 			end
 		end
+	end,
+
+	CanResetAttack = function(self)
+		if self.ActiveAttackReset == nil then
+			return false
+		end
+		if GetTickCount() > self.AttackResetKeyTimer + 1000 then
+			self.ActiveAttackReset = nil
+			return false
+		end
+		local config = self.ActiveAttackReset
+		if config.CanCancel then
+			if config.OnCast then
+				local spellData = myHero:GetSpellData(config.Slot)
+				local startTime = spellData.castTime - spellData.cd
+				if GameTimer() - startTime > 0.075 and GameTimer() - startTime < 0.5 then
+					self.AttackResetSuccess = true
+					--print('OnCast Reset')
+				end
+			elseif config.Buff and Buff:ContainsBuffs(myHero, config.Buff) then
+				self.AttackResetSuccess = true
+				--print('Buff Reset')
+			end
+		else
+			self.AttackResetSuccess = true
+			--print('Quick Reset')
+		end
+		if self.AttackResetSuccess == true then
+			self.AttackResetSuccess = false
+			self.ActiveAttackReset = nil
+			return true
+		end
+		return false
 	end,
 
 	IdEquals = function(self, a, b)
@@ -2704,54 +2744,7 @@ Data = {
 		return false
 	end,
 
-	CanResetAttack = function(self)
-		if self.AttackReset == nil then
-			return false
-		end
-		if self.AttackResetCanCancel then
-			if self.AttackResetOnCast then
-				if self.AttackResetBuff == nil or Buff:ContainsBuffs(myHero, self.AttackResetBuff) then
-					local spellData = myHero:GetSpellData(self.AttackResetSlot)
-					local startTime = spellData.castTime - spellData.cd
-					if
-						not self.AttackResetSuccess
-						and GameTimer() - startTime > 0.075
-						and GameTimer() - startTime < 0.5
-						and GetTickCount() > self.AttackResetTimer + 1000
-					then
-						--print('Reset Cast, Buff ' .. tostring(os.clock()))
-						self.AttackResetSuccess = true
-						self.AttackResetTimeout = GetTickCount()
-						self.AttackResetTimer = GetTickCount()
-						return true
-					end
-					if self.AttackResetSuccess and GetTickCount() > self.AttackResetTimeout + 200 then
-						--print('Reset Timeout')
-						self.AttackResetSuccess = false
-					end
-					return false
-				end
-			elseif Buff:ContainsBuffs(myHero, self.AttackResetBuff)  then
-				if not self.AttackResetSuccess then
-					self.AttackResetSuccess = true
-					--print('Reset Buff')
-					return true
-				end
-				return false
-			end
-			if self.AttackResetSuccess then
-				--print('Remove Reset')
-				self.AttackResetSuccess = false
-			end
-			return false
-		end
-		if self.AttackResetSuccess then
-			self.AttackResetSuccess = false
-			--print("AA RESET STOP !")
-			return true
-		end
-		return false
-	end,
+
 
 	IsAttack = function(self, name)
 		if self.IsAttackSpell[name] then
@@ -2873,15 +2866,11 @@ Data.SpecialMissileSpeed = Data.SpecialMissileSpeeds[Data.HeroName]
 Data.IsHeroMelee = Data.HEROES[Data.HeroName][2]
 Data.IsHeroSpecialMelee = Data.HeroSpecialMelees[Data.HeroName]
 Data.ExtraAttackRange = Data.ExtraAttackRanges[Data.HeroName]
-Data.AttackReset = Data.AttackResets[Data.HeroName]
-if Data.AttackReset ~= nil then
+Data.AttackResetsList = Data.AttackResets[Data.HeroName]
+if Data.AttackResetsList ~= nil then
 	Data.AttackResetSuccess = false
-	Data.AttackResetSlot = Data.AttackReset.Slot
-	Data.AttackResetBuff = Data.AttackReset.Buff
-	Data.AttackResetOnCast = Data.AttackReset.OnCast
-	Data.AttackResetCanCancel = Data.AttackReset.CanCancel
-	Data.AttackResetTimer = 0
-	Data.AttackResetTimeout = 0
+	Data.AttackResetKeyTimer = 0
+	Data.ActiveAttackReset = nil
 end
 
 Spell = {
@@ -5093,6 +5082,7 @@ Attack = {
 	OnTick = function(self)
 		if Data:CanResetAttack() and Orbwalker.Menu.General.AttackResetting:Value() then
 			self.Reset = true
+			--print('Reset AA Success')
 		end
 		local spell = myHero.activeSpell
 		if
