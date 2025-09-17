@@ -1,4 +1,4 @@
-local __version__ = 3.059
+local __version__ = 3.060
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -2665,7 +2665,7 @@ Data = {
 	end,
 
 	CanResetAttack = function(self)
-		if self.ActiveAttackReset == nil then
+		if self.AttackResetsList == nil or self.ActiveAttackReset == nil then
 			return false
 		end
 		if GetTickCount() > self.AttackResetKeyTimer + 1000 then
@@ -5413,6 +5413,9 @@ Orbwalker = {
 			end
 	 		if myHero.charName == "Kalista" then
 				return true
+			end
+	 		if myHero.charName == "Kaisa" and Buff:HasBuff(myHero, "KaisaE") then
+				return true -- Fix bug: Kai'Sa's E ability incorrectly recognized as basic attack, can't move while casting E
 			end
 			if not Data:HeroCanMove() then
 				return false
