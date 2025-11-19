@@ -1,4 +1,4 @@
-local __version__ = 3.060
+local __version__ = 3.061
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -687,8 +687,8 @@ Cached = {
 	TurretsSaved = false,
 	WardsSaved = false,
 	PlantsSaved = false,
-	TempCacheBuffer = {m = GameTimer(), w = GameTimer(), t = GameTimer(), p = GameTimer()},
-	TempCacheTimeout = 1,
+	TempCacheBuffer = {m = 0, w = 0, t = 0, p = 0},
+	TempCacheTimeout = 3,
 
 	WndMsg = function(self, msg, wParam)
 		local oKeys = {}
@@ -707,7 +707,7 @@ Cached = {
 		--If we press an orbwalker hotkey, reset our buffer so we immediately cache new minions (we only do this once per button press to prevent lag)
 		for _, key in pairs(oKeys) do
 			if (msg == KEY_DOWN and wParam == key) then
-				self.TempCacheBuffer = {m = GameTimer(), w = GameTimer(), t = GameTimer(), p = GameTimer()}
+				self.TempCacheBuffer = {m = 0, w = 0, t = 0, p = 0}
 				return
 			end
 		end
@@ -882,7 +882,7 @@ Cached = {
 					end
 				end
 			end
-			self.TempCacheBuffer.m = self.TempCacheBuffer.m + self.TempCacheTimeout
+			self.TempCacheBuffer.m = GameTimer() + self.TempCacheTimeout
 			return self.TempCachedMinions
 		end
 
@@ -918,7 +918,7 @@ Cached = {
 					end
 				end
 			end
-			self.TempCacheBuffer.t = self.TempCacheBuffer.t + self.TempCacheTimeout
+			self.TempCacheBuffer.t = GameTimer() + self.TempCacheTimeout
 			return self.TempCachedTurrets
 		end
 
@@ -954,7 +954,7 @@ Cached = {
 					end
 				end
 			end
-			self.TempCacheBuffer.w = self.TempCacheBuffer.w + self.TempCacheTimeout
+			self.TempCacheBuffer.w = GameTimer() + self.TempCacheTimeout
 			return self.TempCachedWards
 		end
 
@@ -993,7 +993,7 @@ Cached = {
 					end
 				end
 			end
-			self.TempCacheBuffer.p = self.TempCacheBuffer.p + self.TempCacheTimeout
+			self.TempCacheBuffer.p = GameTimer() + self.TempCacheTimeout
 			return self.TempCachedPlants
 		end
 
@@ -1443,6 +1443,15 @@ Damage = {
 	},
 
 	HeroStaticDamage = {
+		["Zaahen"] = function(args)
+			local level = args.From:GetSpellData(_Q).level
+			if Buff:HasBuff(args.From, "ZaahenQ") then
+				args.RawPhysical = args.RawPhysical +  15 * level + (0.2 + 0.1 * level) * args.From.bonusDamage
+			end
+			if Buff:HasBuff(args.From, "ZaahenQ2") then
+				args.RawPhysical = args.RawPhysical +  30 * level + (0.2 + 0.1 * level) * args.From.bonusDamage
+			end
+		end,
 		["Yunara"] = function(args)
 			local level = args.From:GetSpellData(_Q).level
 			if level > 0 then
@@ -1490,12 +1499,12 @@ Damage = {
 			if Buff:HasBuff(args.From, "caitlynpassivedriver") then
 				local modCrit = 1.4875 + (Item:HasItem(args.From, 3031) and 0.34 or 0)
 				local level = args.From.levelData.lvl
-				local t = level < 7 and 1.1 or (level < 13 and 1.15 or 1.2)
+				local t = level < 7 and 0.6 or (level < 13 and 0.8 or 1.0)
 				if args.TargetIsMinion then
+					t = 1.1
 					args.RawPhysical = args.RawPhysical
 						+ (t + (modCrit * args.From.critChance)) * args.From.totalDamage
-				else
-					t = level < 7 and 0.6 or (level < 13 and 0.9 or 1.2)
+				else	
 					args.RawPhysical = args.RawPhysical
 						+ (t + (modCrit * args.From.critChance)) * args.From.totalDamage
 				end
@@ -2289,7 +2298,7 @@ Data = {
 		end,
 	},
 
-	--25.14
+	--25.23
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
 		Ahri = { 4, false, 0.668 },
@@ -2455,6 +2464,7 @@ Data = {
 		Yorick = { 2, true, 0.625 },
 		Yunara = { 5, false, 0.65 },
 		Yuumi = { 3, false, 0.625 },
+		Zaahen = { 4, true, 0.625 },
 		Zac = { 1, true, 0.736 },
 		Zed = { 4, true, 0.651 },
 		Zeri = { 5, false, 0.658 },
@@ -2586,7 +2596,7 @@ Data = {
 		["Sivir"] = { { Slot = _W, Key = HK_W } },
 		["Talon"] = { { Slot = _Q, Key = HK_Q, OnCast = true, CanCancel = true } },
 		["Trundle"] = { { Slot = _Q, Key = HK_Q } },
-		["TwistedFate"] = { 
+		["TwistedFate"] = {
 			{ Slot = _W, Key = HK_W, CanCancel = true, Name = "GoldCardLock", Buff = { ["goldcardpreattack"] = true } },
 			{ Slot = _W, Key = HK_W, CanCancel = true, Name = "BlueCardLock", Buff = { ["bluecardpreattack"] = true } },
 			{ Slot = _W, Key = HK_W, CanCancel = true, Name = "RedCardLock", Buff = { ["redcardpreattack"] = true } },
@@ -2602,8 +2612,12 @@ Data = {
 			{ Slot = _E, Key = HK_E, Name = "YunaraE2", CanCancel = true, OnCast = true },
 			{ Slot = _R, Key = HK_R, BlockBuff = "yunaraq" },
 		},
+		["Zaahen"] = {
+			{ Slot = _Q, Key = HK_Q, Name = "ZaahenQ", Buff = { ["zaahenq"] = true }, CanCancel = true },
+			{ Slot = _Q, Key = HK_Q, Name = "ZaahenQ2", Buff = { ["zaahenq2"] = true }, CanCancel = true },
+		},
 	},
-	-- AA reset logic updated by zgjfjfl. Please report any errors found.
+	-- AA reset logic updated by zgjfjfl.
 	WndMsg = function(self, msg, wParam)
 		if self.AttackResetsList == nil then
 			return
