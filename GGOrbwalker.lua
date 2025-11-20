@@ -1,4 +1,4 @@
-local __version__ = 3.061
+local __version__ = 3.062
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -2613,8 +2613,8 @@ Data = {
 			{ Slot = _R, Key = HK_R, BlockBuff = "yunaraq" },
 		},
 		["Zaahen"] = {
-			{ Slot = _Q, Key = HK_Q, Name = "ZaahenQ", Buff = { ["zaahenq"] = true }, CanCancel = true },
-			{ Slot = _Q, Key = HK_Q, Name = "ZaahenQ2", Buff = { ["zaahenq2"] = true }, CanCancel = true },
+			{ Slot = _Q, Key = HK_Q, Name = "ZaahenQ" },
+			{ Slot = _Q, Key = HK_Q, Name = "ZaahenQ2" },
 		},
 	},
 	-- AA reset logic updated by zgjfjfl.
