@@ -1,4 +1,4 @@
-local __version__ = 3.062
+local __version__ = 3.063
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -1446,10 +1446,10 @@ Damage = {
 		["Zaahen"] = function(args)
 			local level = args.From:GetSpellData(_Q).level
 			if Buff:HasBuff(args.From, "ZaahenQ") then
-				args.RawPhysical = args.RawPhysical +  15 * level + (0.2 + 0.1 * level) * args.From.bonusDamage
+				args.RawPhysical = args.RawPhysical +  15 * level + (0.1 + 0.1 * level) * args.From.bonusDamage
 			end
 			if Buff:HasBuff(args.From, "ZaahenQ2") then
-				args.RawPhysical = args.RawPhysical +  30 * level + (0.2 + 0.1 * level) * args.From.bonusDamage
+				args.RawPhysical = args.RawPhysical +  25 * level + (0.1 + 0.1 * level) * args.From.bonusDamage
 			end
 		end,
 		["Yunara"] = function(args)
@@ -1571,7 +1571,7 @@ Damage = {
 			if Buff:HasBuff(args.From, "NasusQ") then
 				args.RawPhysical = args.RawPhysical
 					+ math_max(Buff:GetBuffStacks(args.From, "NasusQStacks"), 0)
-					+ 10
+					+ 20
 					+ 20 * args.From:GetSpellData(_Q).level
 			end
 		end,
@@ -5659,7 +5659,6 @@ Callback.Add("Load", function()
 	local ticks = SDK.OnTick
 	local draws = SDK.OnDraw
 	local wndmsgs = SDK.OnWndMsg
-	if Game.Latency() < 250 then _G.LATENCY = Game.Latency() else _G.LATENCY = Menu.Main.Latency:Value() end
 
 	Callback.Add("Draw", function()
 		--[[local as = myHero.activeSpell
@@ -5689,28 +5688,15 @@ Callback.Add("Load", function()
 			print("DRAW")
 		end
 		drawTest = 1]]
-	
-		if GameIsChatOpen() then
-			LastChatOpenTimer = GetTickCount()
-		end
 
-		FlashHelper:OnTick()
-		Cached:Reset()
-		Cursor:OnTick()
-		Action:OnTick()
-		Attack:OnTick()
-		Orbwalker:OnTick()
-		for i = 1, #ticks do
-			ticks[i]()
-		end
 		if Menu.Main.Drawings.Enabled:Value() then
 			Target:OnDraw()
 			Cursor:OnDraw()
 			Orbwalker:OnDraw()
 			Health:OnDraw()
-			for i = 1, #draws do
-				draws[i]()
-			end
+		end
+		for i = 1, #draws do
+			draws[i]()
 		end
 		--drawTest = 2
 	end)
@@ -5729,12 +5715,20 @@ Callback.Add("Load", function()
 			LastChatOpenTimer = GetTickCount()
 		end
 
+		FlashHelper:OnTick()
 		Cached:Reset()
+		Cursor:OnTick()
+		Action:OnTick()
+		Attack:OnTick()
+		Orbwalker:OnTick()
 		ChampionInfo:OnTick()
 		SummonerSpell:OnTick()
 		Item:OnTick()
 		Target:OnTick()
 		Health:OnTick()
+		for i = 1, #ticks do
+			ticks[i]()
+		end
 		--tickTest = 2
 	end)
 
