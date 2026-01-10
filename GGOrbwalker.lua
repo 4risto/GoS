@@ -1,4 +1,4 @@
-local __version__ = 3.063
+local __version__ = 3.064
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -852,10 +852,8 @@ Cached = {
 			if count and count > 0 and count < 1000 then
 				for i = 1, count do
 					local o = cachedMinions[i]
-					if o and o.valid and o.visible and o.isTargetable and not o.dead then
-						if not o.isImmortal or o.charName:lower() == "sru_atakhan" then
-							table_insert(self.Minions, o)
-						end
+					if o and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
+						table_insert(self.Minions, o)
 					end
 				end
 			end
@@ -875,10 +873,8 @@ Cached = {
 			if count and count > 0 and count < 1000 then
 				for i = 1, count do
 					local o = GameMinion(i)
-					if o and o.valid and o.visible and o.isTargetable and not o.dead then
-						if not o.isImmortal or o.charName:lower() == "sru_atakhan" then
-							table_insert(self.TempCachedMinions, o)
-						end
+					if o and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
+						table_insert(self.TempCachedMinions, o)
 					end
 				end
 			end
@@ -1446,10 +1442,10 @@ Damage = {
 		["Zaahen"] = function(args)
 			local level = args.From:GetSpellData(_Q).level
 			if Buff:HasBuff(args.From, "ZaahenQ") then
-				args.RawPhysical = args.RawPhysical +  15 * level + (0.1 + 0.1 * level) * args.From.bonusDamage
+				args.RawPhysical = args.RawPhysical +  15 * level + (0.15 + 0.05 * level) * args.From.bonusDamage
 			end
 			if Buff:HasBuff(args.From, "ZaahenQ2") then
-				args.RawPhysical = args.RawPhysical +  25 * level + (0.1 + 0.1 * level) * args.From.bonusDamage
+				args.RawPhysical = args.RawPhysical +  25 * level + (0.15 + 0.05 * level) * args.From.bonusDamage
 			end
 		end,
 		["Yunara"] = function(args)
@@ -1460,6 +1456,8 @@ Damage = {
 		end,
 		["Ashe"] = function(args)
 			local level = args.From:GetSpellData(_Q).level
+			local modCrit = 1.0 + (Item:HasItem(args.From, 3031) and 0.3 or 0)
+			args.RawTotal = args.RawTotal * (1.0 + (modCrit * args.From.critChance))
 			if Buff:HasBuff(args.From, "asheqattack") then
 				args.RawTotal = args.RawTotal * (1.025 + 0.075 * level)
 			end
@@ -1472,9 +1470,9 @@ Damage = {
 			end
 		end,
 		["Neeko"] = function(args)
-			if Buff:HasBuff(args.From, "neekowpassiveready") then
-				local level = args.From:GetSpellData(_W).level
-				if level > 0 then
+			local level = args.From:GetSpellData(_W).level
+			if level > 0 then
+				if Buff:HasBuff(args.From, "neekowpassiveready") then
 					args.RawMagical = args.RawMagical + (35 * level - 5) + 0.6 * args.From.ap
 				end	
 			end
@@ -1497,14 +1495,14 @@ Damage = {
 		end,
 		["Caitlyn"] = function(args)
 			if Buff:HasBuff(args.From, "caitlynpassivedriver") then
-				local modCrit = 1.4875 + (Item:HasItem(args.From, 3031) and 0.34 or 0)
+				local modCrit = 1.0 + (Item:HasItem(args.From, 3031) and 0.3 or 0)
 				local level = args.From.levelData.lvl
 				local t = level < 7 and 0.6 or (level < 13 and 0.8 or 1.0)
 				if args.TargetIsMinion then
 					t = 1.1
 					args.RawPhysical = args.RawPhysical
 						+ (t + (modCrit * args.From.critChance)) * args.From.totalDamage
-				else	
+				else
 					args.RawPhysical = args.RawPhysical
 						+ (t + (modCrit * args.From.critChance)) * args.From.totalDamage
 				end
@@ -1628,99 +1626,92 @@ Damage = {
 	},
 
 	ItemStaticDamage = {
-		[1043] = function(args)
+		[1043] = function(args) -- Recurve Bow
 			args.RawPhysical = args.RawPhysical + 15
 		end,
-		[3144] = function(args)
-			if not args.TargetIsMinion then
+		[3144] = function(args) -- Scout's Slingshot
+			if not args.TargetIsMinion and Item:IsReady(args.From, 3144) then
 				args.RawMagical = args.RawMagical + 40
 			end
 		end,
-		-- [3085] = function(args)
-			-- args.RawMagical = args.RawMagical + 30
-		-- end,
-		[3091] = function(args)
-			-- local t = { 15, 15, 15, 15, 15, 15, 15, 15, 25, 35, 45, 55, 65, 75, 76.25, 77.5, 78.75, 80 }
-			-- args.RawMagical = args.RawMagical + t[math_max(math_min(args.From.levelData.lvl, 18), 1)]
+		[3091] = function(args) -- Wit's End
 			args.RawMagical = args.RawMagical + 45
 		end,
-		[3115] = function(args)
+		[3115] = function(args) -- Nashor's Tooth
 			args.RawMagical = args.RawMagical + 15 + 0.15 * args.From.ap
 		end,
-		[3124] = function(args)
+		[3124] = function(args)	-- Guinsoo's Rageblade
 			args.RawMagical = args.RawMagical + 30
 		end,
-		[3302] = function(args)
+		[3302] = function(args) -- Terminus
 			args.RawMagical = args.RawMagical + 30
 		end,
-		-- [6670] = function(args)
-			-- if args.TargetIsMinion then
-				-- args.RawPhysical = args.RawPhysical + 20
-			-- end
-		-- end,
-		-- [2015] = function(args)
-			-- if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
-				-- args.RawMagical = args.RawMagical + 60
-			-- end
-		-- end,
-		-- [3087] = function(args)
-			-- if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
-				-- if args.TargetIsMinion then
-					-- args.RawMagical = args.RawMagical + 150
-				-- else
-					-- args.RawMagical = args.RawMagical + 90
-				-- end
-			-- end
-		-- end,
-		[3094] = function(args)
+		[3087] = function(args) -- Statikk Shiv
+			for i = 1, #ItemSlots do
+				local slot = ItemSlots[i]
+				local item = args.From:GetItemData(slot)
+				if item and item.itemID == 3087 then
+					if item.ammo and item.ammo > 0 then
+						if args.TargetIsMinion then
+							args.RawMagical = args.RawMagical + 85
+						else
+							args.RawMagical = args.RawMagical + 60
+						end
+					end
+					break
+				end
+			end
+		end,
+		[3094] = function(args) -- Rapid Firecannon
 			if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
 				args.RawMagical = args.RawMagical + 40
 			end
 		end,
-		-- [3095] = function(args)
-			-- if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
-				-- args.RawMagical = args.RawMagical + 100
-			-- end
-		-- end,
-		[6699] = function(args)
+		[3097] = function(args) -- Stormrazor
+			if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
+				args.RawMagical = args.RawMagical + 100
+			end
+		end,
+		[6699] = function(args) -- Voltaic Cyclosword
 			if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
 				args.RawPhysical = args.RawPhysical + 100
 			end
 		end,
-		[3057] = function(args)
+		[3057] = function(args) -- Sheen
 			if Buff:HasBuff(args.From, "sheen") then
 				args.RawPhysical = args.RawPhysical + 1.0 * args.From.baseDamage
 			end
 		end,
-		[6662] = function(args)
+		[6662] = function(args) -- Iceborn Gauntlet
 			if Buff:HasBuff(args.From, "6662buff") then
-				args.RawPhysical = args.RawPhysical + 1.0 * args.From.baseDamage
+				args.RawPhysical = args.RawPhysical + 1.5 * args.From.baseDamage
 			end
 		end,
-		[3078] = function(args)
+		[3078] = function(args) -- Trinity Force
 			if Buff:HasBuff(args.From, "3078trinityforce") then
 				args.RawPhysical = args.RawPhysical + 2.0 * args.From.baseDamage
 			end
 		end,
-		-- [3508] = function(args)
-			-- if Buff:HasBuff(args.From, "3508buff") then
-				-- args.RawPhysical = args.RawPhysical + 1.4 * args.From.baseDamage + 0.2 * args.From.bonusDamage
-			-- end
-		-- end,
-		[3100] = function(args)
+		[3508] = function(args) -- Essence Reaver
+			if Buff:HasBuff(args.From, "3508buff") then
+				local critMultiplier = 0.5 * args.From.critChance
+				local damage = 1.25 * args.From.baseDamage * (1 + critMultiplier)
+				args.RawPhysical = args.RawPhysical + damage
+			end
+		end,
+		[3100] = function(args) -- Lich Bane
 			if Buff:HasBuff(args.From, "lichbane") then
 				args.RawMagical = args.RawMagical + 0.75 * args.From.baseDamage + 0.4 * args.From.ap
+			end
+		end,
+		[2510] = function(args) -- Dusk and Dawn
+			if Buff:HasBuff(args.From, "2510_sheenhands") then
+				args.RawPhysical = args.RawPhysical + 1.0 * args.From.baseDamage + 0.1 * args.From.ap
 			end
 		end,
 	},
 
 	HeroPassiveDamage = {
-		["Ashe"] = function(args)
-			if Buff:HasBuff(args.Target, "ashepassiveslow") then
-				local modCrit = 0.75 + (Item:HasItem(args.From, 3031) and 0.4 or 0)
-				args.RawTotal = args.RawTotal * (1.0 + (modCrit * args.From.critChance))
-			end
-		end,
 		["KogMaw"] = function(args)
 			local level = args.From:GetSpellData(_W).level
 			if Buff:HasBuff(args.From, "kogmawbioarcanebarrage") then
@@ -1738,15 +1729,19 @@ Damage = {
 				end
 			end
 			if args.Target.team == 300 then
-				args.RawMagical = math.min(300, args.RawMagical)
+				args.RawMagical = math_min(300, args.RawMagical)
 			end
 		end,
 		["Jhin"] = function(args)
-			if myHero.hudAmmo==1 then
+			local level = args.From.levelData.lvl
+			local t = level <= 9 and (3 + level) or level <= 11 and (12 + 2 * (level - 9)) or (16 + 4 * (level - 11))
+			args.RawTotal = args.From.baseDamage
+				* (1 + t / 100 + args.From.critChance * 0.35 + 0.3 * (args.From.attackSpeed - 1)) + args.From.bonusDamage
+			if args.From.hudAmmo == 1 then
 				args.CriticalStrike = true
-				args.CalculatedPhysical = args.CalculatedPhysical
+				args.RawPhysical = args.RawPhysical
 					+ math_min(0.25, 0.1 + 0.05 * math_ceil(args.From.levelData.lvl / 5))
-						* (args.Target.maxHealth - args.Target.health)*0.66 --shortcut for dealing with crit multipliers
+						* (args.Target.maxHealth - args.Target.health)
 			end
 		end,
 		["Lux"] = function(args)
@@ -1792,6 +1787,39 @@ Damage = {
 		end,
 	},
 
+	ItemPassiveDamage = {
+		[6672] = function(args) -- Kraken Slayer
+			local stacks = Buff:GetBuffStacks(args.From, "6672buff")
+			if stacks == 2 then
+				local isMelee = Data:IsMelee(args.From)
+				local level = args.From.levelData.lvl
+				local baseDamage
+				if isMelee then
+					baseDamage = level <= 8 and 150 or 150 + (level - 8) * 5 
+				else
+					baseDamage = level <= 8 and 120 or 120 + (level - 8) * 4
+				end
+				local missingHealthPercent = (args.Target.maxHealth - args.Target.health) / args.Target.maxHealth
+				local damageAmplification = 1 + (0.75 * missingHealthPercent)
+				local damage = baseDamage * damageAmplification
+				args.RawPhysical = args.RawPhysical + damage
+			end
+		end,
+		[3153] = function(args) -- Blade of the Ruined King
+			local damage
+			local isMelee = Data:IsMelee(args.From)
+			if isMelee then
+				damage = 0.09 * args.Target.health
+			else
+				damage = 0.06 * args.Target.health
+			end
+			if args.Target.type == Obj_AI_Minion then
+				damage = math_min(damage, 100)
+			end
+			args.RawPhysical = args.RawPhysical + damage
+		end,
+	},
+
 	IsBaseTurret = function(self, name)
 		if self.BaseTurrets[name] then
 			return true
@@ -1808,7 +1836,7 @@ Damage = {
 
 	SetItemStaticDamage = function(self, id, args)
 		local s = self.ItemStaticDamage[id]
-		if s then
+		if s and (args.From.charName ~= "Zeri" or id == 3144) then
 			s(args)
 		end
 	end,
@@ -1816,6 +1844,13 @@ Damage = {
 	SetHeroPassiveDamage = function(self, args)
 		local s = self.HeroPassiveDamage[args.From.charName]
 		if s then
+			s(args)
+		end
+	end,
+
+	SetItemPassiveDamage = function(self, id, args)
+		local s = self.ItemPassiveDamage[id]
+		if s and args.From.charName ~= "Zeri" then
 			s(args)
 		end
 	end,
@@ -1905,12 +1940,6 @@ Damage = {
 			DamageType = DAMAGE_TYPE_PHYSICAL,
 			TargetIsMinion = targetIsMinion,
 		}
-		if from.charName=="Jhin" then
-			local levelAD = { 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1, 1.11, 1.12, 1.14, 1.16, 1.2, 1.24, 1.28, 1.32, 1.36, 1.40, 1.44}
-			local JhinAD= ((((59+4.7*(myHero.levelData.lvl-1)*(0.7025+(0.0175*(myHero.levelData.lvl-1)))))*(levelAD[math.max(math.min(myHero.levelData.lvl, 18), 1)]+myHero.critChance*0.3+0.25*(myHero.attackSpeed-1)))+myHero.bonusDamage)
-			args.RawTotal=JhinAD
-
-		end
 
 		self:SetHeroStaticDamage(args)
 		local HashSet = {}
@@ -1945,14 +1974,23 @@ Damage = {
 			return 1
 		end
 		self:SetHeroPassiveDamage(args)
-		if args.DamageType == DAMAGE_TYPE_PHYSICAL then
-			args.RawPhysical = args.RawPhysical + args.RawTotal
-		elseif args.DamageType == DAMAGE_TYPE_MAGICAL then
-			args.RawMagical = args.RawMagical + args.RawTotal
-		elseif args.DamageType == DAMAGE_TYPE_TRUE then
-			args.CalculatedTrue = args.CalculatedTrue + args.RawTotal
+		local HashSet = {}
+		for i = 1, #ItemSlots do
+			local slot = ItemSlots[i]
+			local item = args.From:GetItemData(slot)
+			if item ~= nil and item.itemID > 0 then
+				if HashSet[item.itemID] == nil then
+					self:SetItemPassiveDamage(item.itemID, args)
+					HashSet[item.itemID] = true
+				end
+			end
 		end
-
+		local percentMod = 1
+		if args.From.critChance - 1 == 0 or args.CriticalStrike then
+			percentMod = percentMod * self:GetCriticalStrikePercent(args.From)
+		end
+		args.RawTotal = args.RawTotal * percentMod
+		args.RawPhysical = args.RawPhysical + args.RawTotal
 		if args.RawPhysical > 0 then
 			args.CalculatedPhysical = args.CalculatedPhysical
 				+ self:CalculateDamage(
@@ -1981,11 +2019,7 @@ Damage = {
 				args.CalculatedPhysical = args.CalculatedPhysical + 5
 			end
 		end
-		local percentMod = 1
-		if args.From.critChance - 1 == 0 or args.CriticalStrike then
-			percentMod = percentMod * self:GetCriticalStrikePercent(args.From)
-		end
-		return percentMod * args.CalculatedPhysical + args.CalculatedMagical + args.CalculatedTrue
+		return args.CalculatedPhysical + args.CalculatedMagical + args.CalculatedTrue
 	end,
 
 	GetAutoAttackDamage = function(self, from, target, respectPassives)
@@ -2003,9 +2037,6 @@ Damage = {
 				end
 				return self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion))*1.33
 			end
---[[ 			if myHero.hudAmmo==1 then
-				print(self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion)))
-			end ]]
 			return self:GetHeroAutoAttackDamage(from, target, self:GetStaticAutoAttackDamage(from, targetIsMinion))
 		end
 
@@ -2020,26 +2051,23 @@ Damage = {
 				end
 			end
 		end
-		if from.charName=="Jhin" then
-			local levelAD = { 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1, 1.11, 1.12, 1.14, 1.16, 1.2, 1.24, 1.28, 1.32, 1.36, 1.40, 1.44}
-			local JhinAD= ((((59+4.7*(myHero.levelData.lvl-1)*(0.7025+(0.0175*(myHero.levelData.lvl-1)))))*(levelAD[math.max(math.min(myHero.levelData.lvl, 18), 1)]+myHero.critChance*0.3+0.25*(myHero.attackSpeed-1)))+myHero.bonusDamage)
-			return self:CalculateDamage(from, target, DAMAGE_TYPE_PHYSICAL, JhinAD, false, true)
-		end
-
 		return self:CalculateDamage(from, target, DAMAGE_TYPE_PHYSICAL, from.totalDamage, false, true)
 	end,
 
 	GetCriticalStrikePercent = function(self, from)
-		local baseCriticalDamage = 1.75
+		local heroName = from.charName
+		local baseCriticalDamage = 2.0
 		local percentMod = 1
-		local fixedMod = 0
-		if from.charName == "Jhin" then
-			percentMod = 0.86
-		elseif from.charName == "XinZhao" then
-			baseCriticalDamage = baseCriticalDamage - (0.875 - 0.125 * from:GetSpellData(_W).level)
-		-- elseif from.charName == "Yasuo" then
-			-- percentMod = 0.9
-		elseif from.charName == "Yunara" then
+		if Item:HasItem(from, 3031) then
+			baseCriticalDamage = 2.3
+		end
+		if heroName == "Ashe" then
+			baseCriticalDamage = 1.0
+		elseif heroName == "Jhin" then
+			percentMod = 0.75
+		elseif heroName == "Yasuo" or heroName == "Yone" or heroName == "Senna" then
+			percentMod = 0.9
+		elseif heroName == "Yunara" then
 			baseCriticalDamage = baseCriticalDamage * (1.1 + 0.001 * from.ap)
 		end
 		return baseCriticalDamage * percentMod
@@ -2212,6 +2240,12 @@ Data = {
 	},
 
 	SpecialMissileSpeeds = {
+		["Kaisa"] = function()
+			if Buff:HasBuff(myHero, "kaisaeattackspeed") then
+				return 2500
+			end
+			return nil
+		end,
 		["Yunara"] = function()
 			if Buff:HasBuff(myHero, "YunaraQ") then
 				return 10000
@@ -3072,7 +3106,7 @@ Spell = {
 				if GameCanUseSpell(self.spell) ~= 0 and myHero:GetSpellData(self.spell).currentCd > 0.5 then
 					return
 				end
-				local targets = Object:GetEnemyMinions(self.Range, false, false)
+				local targets = Object:GetEnemyMinions(self.Range, false, true)
 				for i = 1, #targets do
 					local target = targets[i]
 					table_insert(
@@ -3307,7 +3341,7 @@ end
 
 Item = {
 
-	ItemQss = { 6035, 3139, 3140 },
+	ItemQss = { 3139, 3140 }, -- 6035
 	CachedItems = {},
 	Hotkey = nil,
 	CleanseStartTime = GetTickCount(),
@@ -3386,7 +3420,7 @@ Item = {
 				casted = true
 				DelayAction(function()
 					Control.CastSpell(self.Hotkey)
-				end,self.MenuQss.Delay:Value())
+				end, self.MenuQss.Delay:Value())
 				self.CleanseStartTime = GetTickCount()
 				break
 			end
@@ -4828,6 +4862,11 @@ Health = {
 					return hero
 				end
 			end
+			-- plants or pets
+			local plants = self:GetPlantsTarget()
+			if plants ~= nil then
+				return plants
+			end
 			-- lane minion
 			local laneMinion = self:GetLaneMinion()
 			if laneMinion ~= nil then
@@ -5429,7 +5468,10 @@ Orbwalker = {
 				return true
 			end
 	 		if myHero.charName == "Kaisa" and Buff:HasBuff(myHero, "KaisaE") then
-				return true -- Fix bug: Kai'Sa's E ability incorrectly recognized as basic attack, can't move while casting E
+				return true -- Fix bug: Kai'Sa's E ability incorrectly recognized as basic attack
+			end
+	 		if myHero.charName == "Aphelios" and Buff:HasBuff(myHero, "ApheliosSeverumQ") then
+				return true
 			end
 			if not Data:HeroCanMove() then
 				return false
@@ -5491,10 +5533,6 @@ Orbwalker = {
 			end
 		end
 		if self.Modes[ORBWALKER_MODE_LANECLEAR] then
-			local plants = Health:GetPlantsTarget()
-			if plants ~= nil then
-				return plants
-			end
 			return Health:GetLaneClearTarget()
 		end
 		if self.Modes[ORBWALKER_MODE_HARASS] then
