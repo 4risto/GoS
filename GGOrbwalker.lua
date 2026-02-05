@@ -1,4 +1,4 @@
-local __version__ = 3.064
+local __version__ = 3.065
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -1608,7 +1608,7 @@ Damage = {
 		["Varus"] = function(args)
 			local level = args.From:GetSpellData(_W).level
 			if level > 0 then
-				args.RawMagical = args.RawMagical + (8 * level - 2) + 0.35 * args.From.ap
+				args.RawMagical = args.RawMagical + (8 * level - 2) + 0.25 * args.From.ap
 			end
 		end,
 		["Viktor"] = function(args)
@@ -1706,7 +1706,7 @@ Damage = {
 		end,
 		[2510] = function(args) -- Dusk and Dawn
 			if Buff:HasBuff(args.From, "2510_sheenhands") then
-				args.RawPhysical = args.RawPhysical + 1.0 * args.From.baseDamage + 0.1 * args.From.ap
+				args.RawPhysical = args.RawPhysical + 0.75 * args.From.baseDamage + 0.1 * args.From.ap
 			end
 		end,
 	},
@@ -2754,6 +2754,9 @@ Data = {
 
 	GetAutoAttackRange = function(self, from, target)
 		local result = from.range
+		if from.charName == "Zeri" then
+			result = 500
+		end
 		local fromType = from.type
 		if fromType == Obj_AI_Minion then
 			local fromName = from.charName
@@ -3807,10 +3810,6 @@ Object = {
 }
 
 Object:OnEnemyHeroLoad(function(args)
-	if args.charName == "Mel" then
-		Object.UndyingBuffs["MelWReflect"] = true
-		return
-	end
 	if args.charName == "Kayle" then
 		Object.UndyingBuffs["KayleR"] = true
 		return
@@ -4071,7 +4070,7 @@ Target = {
 	GetComboTarget = function(self, dmgType)
 		dmgType = dmgType or DAMAGE_TYPE_PHYSICAL
 		local menuRange = self.MenuAARange:Value()
-		local attackRange = myHero.range + myHero.boundingRadius - menuRange
+		local attackRange = (myHero.charName == "Zeri" and 500 or myHero.range) + myHero.boundingRadius - menuRange
 		local enemies = Object:GetEnemyHeroes(false, false, true, true)
 		local enemiesaa = {}
 		for i = 1, #enemies do
@@ -4307,7 +4306,7 @@ Health = {
 		self.ShouldRemoveObjects = true
 		self.StaticAutoAttackDamage = Damage:GetStaticAutoAttackDamage(myHero, true)
 		-- SET OBJECTS
-		attackRange = myHero.range + myHero.boundingRadius
+		attackRange = (myHero.charName == "Zeri" and 500 or myHero.range) + myHero.boundingRadius
 		local cachedminions = Cached:GetMinions()
 		for i = 1, #cachedminions do
 			local obj = cachedminions[i]
