@@ -1,4 +1,4 @@
-local __version__ = 3.065
+local __version__ = 3.066
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -1608,13 +1608,13 @@ Damage = {
 		["Varus"] = function(args)
 			local level = args.From:GetSpellData(_W).level
 			if level > 0 then
-				args.RawMagical = args.RawMagical + (8 * level - 2) + 0.25 * args.From.ap
+				args.RawMagical = args.RawMagical + (9 * level - 1) + 0.25 * args.From.ap + 0.15 * args.From.bonusDamage
 			end
 		end,
 		["Viktor"] = function(args)
 			if Buff:HasBuff(args.From, "ViktorQReturn") then
 				args.DamageType = DAMAGE_TYPE_MAGICAL
-				args.RawMagical = args.RawMagical + (25 * args.From:GetSpellData(_Q).level - 5) + 0.6 * args.From.ap
+				args.RawMagical = args.RawMagical + (25 * args.From:GetSpellData(_Q).level - 5) + 0.5 * args.From.ap
 			end
 		end,
 		["Vayne"] = function(args)
@@ -2817,6 +2817,10 @@ Data = {
 				return false
 			end
 		end
+		-- reduce spam clicks during hardCC
+		if Buff:HasBuffTypes(myHero, { [5] = true, [8] = true, [9] = true, [12] = true, [23] = true, [25] = true, [29] = true, [30] = true, [31] = true, [35] = true }) then
+			return false
+		end
 		return true
 	end,
 
@@ -2833,7 +2837,9 @@ Data = {
 				return false
 			end
 		end
-		if  Buff:HasBuffTypes(myHero, { [32] = true }) or (Buff:HasBuffTypes(myHero, { [26] = true}) and myHero.charName~="Azir") then
+		-- reduce spam clicks during hardCC
+		if Buff:HasBuffTypes(myHero, { [5] = true, [8] = true, [9] = true, [23] = true, [25] = true, [29] = true, [30] = true, [31] = true, [32] = true, [35] = true })
+			or (Buff:HasBuffTypes(myHero, { [26] = true}) and myHero.charName ~= "Azir") then
 			return false
 		end
 		return true
