@@ -1,4 +1,4 @@
-local __version__ = 3.066
+local __version__ = 3.067
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -984,7 +984,9 @@ Cached = {
 					if o and o.type == Obj_AI_Minion and o.isEnemy and o.valid and o.visible and o.isTargetable and not o.dead and not o.isImmortal then
 						local charName = o.charName:lower()
 						if self.OtherMinions[charName] then
-							table_insert(self.TempCachedPlants, o)
+							if charName ~= "apheliosturret" or o.isTargetableToTeam then
+								table_insert(self.TempCachedPlants, o)
+							end
 						end
 					end
 				end
@@ -1483,16 +1485,6 @@ Damage = {
 				args.RawMagical = args.RawMagical + t[math_max(math_min(args.From.levelData.lvl, 18), 1)] + 0.5 * args.From.ap
 			end
 		end,
-		["Zeri"] = function(args)
-			args.RawTotal = args.RawTotal * 0
-			args.RawPhysical = args.RawTotal
-			local level = args.From.levelData.lvl
-			if Buff:HasBuff(myHero, "zeriqpassiveready") then
-				args.RawMagical = 70 + 5 * level + args.From.ap * 1.1
-			else
-				args.RawMagical = 10 + (15 / 17) * (level - 1) * (0.7025 + 0.0175 * (level-1)) + args.From.ap * 0.03
-			end
-		end,
 		["Caitlyn"] = function(args)
 			if Buff:HasBuff(args.From, "caitlynpassivedriver") then
 				local modCrit = 1.0 + (Item:HasItem(args.From, 3031) and 0.3 or 0)
@@ -1647,18 +1639,11 @@ Damage = {
 			args.RawMagical = args.RawMagical + 30
 		end,
 		[3087] = function(args) -- Statikk Shiv
-			for i = 1, #ItemSlots do
-				local slot = ItemSlots[i]
-				local item = args.From:GetItemData(slot)
-				if item and item.itemID == 3087 then
-					if item.ammo and item.ammo > 0 then
-						if args.TargetIsMinion then
-							args.RawMagical = args.RawMagical + 85
-						else
-							args.RawMagical = args.RawMagical + 60
-						end
-					end
-					break
+			if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
+				if args.TargetIsMinion then
+					args.RawMagical = args.RawMagical + 90
+				else
+					args.RawMagical = args.RawMagical + 60
 				end
 			end
 		end,
@@ -1670,11 +1655,6 @@ Damage = {
 		[3097] = function(args) -- Stormrazor
 			if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
 				args.RawMagical = args.RawMagical + 100
-			end
-		end,
-		[6699] = function(args) -- Voltaic Cyclosword
-			if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
-				args.RawPhysical = args.RawPhysical + 100
 			end
 		end,
 		[3057] = function(args) -- Sheen
@@ -1719,12 +1699,15 @@ Damage = {
 			end
 		end,
 		["Zeri"] = function(args)
+			args.RawTotal = args.RawTotal * 0
+			args.RawPhysical = args.RawTotal
 			local level = args.From.levelData.lvl
 			if Buff:HasBuff(myHero, "zeriqpassiveready") then
-				args.RawMagical = args.RawMagical
+				args.RawMagical = 70 + 5 * level + args.From.ap * 1.1
 					+ (1 + (10 / 17) * (level - 1)) / 100 * args.Target.maxHealth
 			else
-				if args.Target.health < 60 + (90 / 17) * (level - 1) + args.From.ap * 0.18 then
+				args.RawMagical = 10 + (15 / 17) * (level - 1) * (0.7025 + 0.0175 * (level-1)) + args.From.ap * 0.03
+				if args.Target.health < 70 + (90 / 17) * (level - 1) + args.From.ap * 0.2 then
 					args.RawMagical = 9999 --(Execute targets, < this health)
 				end
 			end
@@ -1788,34 +1771,30 @@ Damage = {
 	},
 
 	ItemPassiveDamage = {
-		[6672] = function(args) -- Kraken Slayer
-			local stacks = Buff:GetBuffStacks(args.From, "6672buff")
-			if stacks == 2 then
-				local isMelee = Data:IsMelee(args.From)
-				local level = args.From.levelData.lvl
-				local baseDamage
-				if isMelee then
-					baseDamage = level <= 8 and 150 or 150 + (level - 8) * 5 
-				else
-					baseDamage = level <= 8 and 120 or 120 + (level - 8) * 4
+		[6699] = function(args) -- Voltaic Cyclosword
+			if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
+				local damage = args.Target.health * (Data:IsMelee(args.From) and 0.09 or 0.07)
+				if args.TargetIsMinion then
+					damage = math_min(damage, 200)
 				end
-				local missingHealthPercent = (args.Target.maxHealth - args.Target.health) / args.Target.maxHealth
-				local damageAmplification = 1 + (0.75 * missingHealthPercent)
-				local damage = baseDamage * damageAmplification
 				args.RawPhysical = args.RawPhysical + damage
 			end
 		end,
+		[6672] = function(args) -- Kraken Slayer
+			if Buff:GetBuffStacks(args.From, "6672buff") == 2 then
+				local isMelee = Data:IsMelee(args.From)
+				local level = args.From.levelData.lvl
+				local baseDamage = isMelee and (level <= 8 and 150 or 150 + (level - 8) * 5)
+											or (level <= 8 and 120 or 120 + (level - 8) * 4)
+				local missingHealthPercent = (args.Target.maxHealth - args.Target.health) / args.Target.maxHealth
+				args.RawPhysical = args.RawPhysical + baseDamage * (1 + 0.75 * missingHealthPercent)
+			end
+		end,
 		[3153] = function(args) -- Blade of the Ruined King
-			local damage
-			local isMelee = Data:IsMelee(args.From)
-			if isMelee then
-				damage = 0.09 * args.Target.health
-			else
-				damage = 0.06 * args.Target.health
-			end
-			if args.Target.type == Obj_AI_Minion then
-				damage = math_min(damage, 100)
-			end
+    		local damage = args.Target.health * (Data:IsMelee(args.From) and 0.09 or 0.06)
+    		if args.TargetIsMinion then
+        		damage = math_min(damage, 100)
+    		end
 			args.RawPhysical = args.RawPhysical + damage
 		end,
 	},
@@ -1850,7 +1829,7 @@ Damage = {
 
 	SetItemPassiveDamage = function(self, id, args)
 		local s = self.ItemPassiveDamage[id]
-		if s and args.From.charName ~= "Zeri" then
+		if s and (args.From.charName ~= "Zeri" or id == 6699) then
 			s(args)
 		end
 	end,
@@ -2015,7 +1994,7 @@ Damage = {
 		end
 		-- Focus passive from Doran items and Tear of the Goddess
 		if args.TargetIsMinion and args.Target.maxHealth > 6 then
-			if Item:HasItem(from, 1054) or Item:HasItem(from, 1056) or Item:HasItem(from, 3070) then
+			if Item:HasItem(from, 1054) or Item:HasItem(from, 1056) or Item:HasItem(from, 3070) or Item:HasItem(from, 1120) then
 				args.CalculatedPhysical = args.CalculatedPhysical + 5
 			end
 		end
@@ -2332,7 +2311,7 @@ Data = {
 		end,
 	},
 
-	--25.23
+	--26.09
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
 		Ahri = { 4, false, 0.668 },
@@ -2430,7 +2409,7 @@ Data = {
 		Nilah = { 5, true, 0.697 },
 		Nocturne = { 4, true, 0.721 },
 		Nunu = { 2, true, 0.625 },
-		Olaf = { 2, true, 0.694 },
+		Olaf = { 2, true, 0.72 },
 		Orianna = { 4, false, 0.658 },
 		Ornn = { 2, true, 0.625 },
 		Pantheon = { 3, true, 0.658 },
@@ -2455,7 +2434,7 @@ Data = {
 		Sett = { 2, true, 0.625 },
 		Shaco = { 4, true, 0.694 },
 		Shen = { 1, true, 0.751 },
-		Shyvana = { 2, true, 0.658 },
+		Shyvana = { 2, true, 0.638 },
 		Singed = { 1, true, 0.7 },
 		Sion = { 1, true, 0.679 },
 		Sivir = { 5, false, 0.625 },
@@ -2755,7 +2734,7 @@ Data = {
 	GetAutoAttackRange = function(self, from, target)
 		local result = from.range
 		if from.charName == "Zeri" then
-			result = 500
+			result = 550
 		end
 		local fromType = from.type
 		if fromType == Obj_AI_Minion then
@@ -3487,17 +3466,24 @@ Object = {
 	IsKindred = myHero.charName == "Kindred",
 	IsNasus = myHero.charName == "Nasus",
 	OnLoad = function(self)
-		for i = 1, GameObjectCount() do
-
-			local object = GameObject(i)
-			if object and (object.type == Obj_AI_Barracks or object.type == Obj_AI_Nexus) then
-				if object.isEnemy then
-					table_insert(self.EnemyBuildings, object)
-				elseif object.isAlly then
-					table_insert(self.AllyBuildings, object)
+		Action:Add(function()  -- prevent missing buildings during rapid loading 
+			self.EnemyBuildings = {}
+        	self.AllyBuildings = {}
+			for i = 1, GameObjectCount() do
+				local object = GameObject(i)
+				if object and (object.type == Obj_AI_Barracks or object.type == Obj_AI_Nexus) then
+					if object.isEnemy then
+						table_insert(self.EnemyBuildings, object)
+					elseif object.isAlly then
+						table_insert(self.AllyBuildings, object)
+					end
 				end
 			end
-		end
+        	if #self.EnemyBuildings > 0 then
+            	return true
+       		end
+		end, 1, 5)
+
 		Action:Add(function()
 			local success = 0
 			for i = 1, GameHeroCount() do
@@ -4076,7 +4062,7 @@ Target = {
 	GetComboTarget = function(self, dmgType)
 		dmgType = dmgType or DAMAGE_TYPE_PHYSICAL
 		local menuRange = self.MenuAARange:Value()
-		local attackRange = (myHero.charName == "Zeri" and 500 or myHero.range) + myHero.boundingRadius - menuRange
+		local attackRange = (myHero.charName == "Zeri" and 550 or myHero.range) + myHero.boundingRadius - menuRange
 		local enemies = Object:GetEnemyHeroes(false, false, true, true)
 		local enemiesaa = {}
 		for i = 1, #enemies do
@@ -4312,7 +4298,7 @@ Health = {
 		self.ShouldRemoveObjects = true
 		self.StaticAutoAttackDamage = Damage:GetStaticAutoAttackDamage(myHero, true)
 		-- SET OBJECTS
-		attackRange = (myHero.charName == "Zeri" and 500 or myHero.range) + myHero.boundingRadius
+		attackRange = (myHero.charName == "Zeri" and 550 or myHero.range) + myHero.boundingRadius
 		local cachedminions = Cached:GetMinions()
 		for i = 1, #cachedminions do
 			local obj = cachedminions[i]
@@ -5551,7 +5537,7 @@ Orbwalker = {
 	end,
 
 	Attack = function(self, unit)
-		if not self.Menu.AttackEnabled:Value() then
+		if not self.Menu.AttackEnabled:Value()  or Control.IsKeyDown(0x11) or Control.IsKeyDown(0x12) then -- ctrl or alt, press these will spam clicks
 			return
 		end
 		if self.AttackEnabled and unit and unit.valid and unit.visible and unit.pos:To2D().onScreen then
