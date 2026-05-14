@@ -1,4 +1,4 @@
-local __version__ = 3.067
+local __version__ = 3.068
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -609,11 +609,15 @@ FlashHelper = {
 
 	IsReady = function(self)
 		local has_flash = false
-		if myHero:GetSpellData(SUMMONER_1).name == "SummonerFlash" or myHero:GetSpellData(SUMMONER_1).name == "SummonerCherryFlash" then
+		if myHero:GetSpellData(SUMMONER_1).name == "SummonerFlash" or myHero:GetSpellData(SUMMONER_1).name == "SummonerCherryFlash" 
+			or myHero:GetSpellData(SUMMONER_1).name == "Augment_ARAM_FlashySpell"
+		then
 			self.FlashSpell = SUMMONER_1
 			has_flash = true
 		end
-		if myHero:GetSpellData(SUMMONER_2).name == "SummonerFlash" or myHero:GetSpellData(SUMMONER_2).name == "SummonerCherryFlash" then
+		if myHero:GetSpellData(SUMMONER_2).name == "SummonerFlash" or myHero:GetSpellData(SUMMONER_2).name == "SummonerCherryFlash" 
+			or myHero:GetSpellData(SUMMONER_2).name == "Augment_ARAM_FlashySpell"
+		then
 			self.FlashSpell = SUMMONER_2
 			has_flash = true
 		end
@@ -1461,7 +1465,7 @@ Damage = {
 			local modCrit = 1.0 + (Item:HasItem(args.From, 3031) and 0.3 or 0)
 			args.RawTotal = args.RawTotal * (1.0 + (modCrit * args.From.critChance))
 			if Buff:HasBuff(args.From, "asheqattack") then
-				args.RawTotal = args.RawTotal * (1.025 + 0.075 * level)
+				args.RawTotal = args.RawTotal * (1.05 + 0.05 * level)
 			end
 		end,
 		["Jayce"] = function(args)
@@ -2641,7 +2645,7 @@ Data = {
 		end
 
 		for _, AttackReset in ipairs(self.AttackResetsList) do
-			if wParam == AttackReset.Key then
+			if msg == KEY_UP and  wParam == AttackReset.Key then
 				--Add a 600ms cooldown to prevent spamming the reset key
 				if GetTickCount() <= self.AttackResetKeyTimer + 600 then return end
 
@@ -5126,7 +5130,6 @@ Attack = {
 	OnTick = function(self)
 		if Data:CanResetAttack() and Orbwalker.Menu.General.AttackResetting:Value() then
 			self.Reset = true
-			--print('Reset AA Success')
 		end
 		local spell = myHero.activeSpell
 		if
@@ -5217,7 +5220,10 @@ Attack = {
 			return true
 		end
 		if self.CastEndTime > self.LocalStart then
-			if self.Reset or GameTimer() >= self.ServerStart + self:GetAnimation() - Data:GetLatency() - 0.01 then
+        	if self.Reset and not self:IsActive() then
+				-- print('Reset AA Success')
+            	return true
+        	elseif GameTimer() >= self.ServerStart + self:GetAnimation() - Data:GetLatency() - 0.01 then
 				return true
 			end
 			return false
@@ -5333,7 +5339,7 @@ Orbwalker = {
 		if Data:Stop() then
 			return
 		end
-		if myHero.dead or self.IsNone then
+		if myHero.dead or (myHero.charName == "Sion" and Buff:HasBuff(myHero, "sionpassivedelay")) or self.IsNone then
 			return
 		end
 		self:Orbwalk()
