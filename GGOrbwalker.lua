@@ -1,4 +1,4 @@
-local __version__ = 3.069
+local __version__ = 3.070
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -1210,7 +1210,9 @@ Action = {
 	Tasks = {},
 
 	OnTick = function(self)
-		for i, task in pairs(self.Tasks) do
+		-- Use reverse order so table_remove will not shift later tasks past the loop.
+		for i = #self.Tasks, 1, -1 do
+			local task = self.Tasks[i]
 			if os.clock() >= task[2] then
 				if task[1]() or os.clock() >= task[3] then
 					table_remove(self.Tasks, i)
@@ -1454,6 +1456,10 @@ Damage = {
 			local level = args.From:GetSpellData(_Q).level
 			if level > 0 then
 				args.RawMagical = args.RawMagical +  5 * level + 0.2 * args.From.ap
+			end
+			if args.From.critChance >= 1 then
+				args.RawMagical = args.RawMagical
+					+ args.RawTotal * Damage:GetCriticalStrikePercent(args.From) * (0.1 + 0.001 * args.From.ap)
 			end
 		end,
 		["Ashe"] = function(args)
@@ -1730,6 +1736,28 @@ Damage = {
 		["Lux"] = function(args)
 			if Buff:HasBuff(args.Target, "LuxIlluminatingFraulein") then
 				args.RawMagical = 20 + args.From.levelData.lvl * 10 + args.From.ap * 0.25
+			end
+		end,
+		["Locke"] = function(args)
+			local level = args.From.levelData.lvl
+			local percent = 0
+			if args.Target.maxHealth > 0 then
+				percent = math_min((args.Target.maxHealth - args.Target.health) / args.Target.maxHealth / 0.7, 1)
+			end
+			args.RawMagical = args.RawMagical + (5 + (35 / 17) * (level - 1) + 0.1 * args.From.ap) * (1 + percent)
+			local Qlevel = args.From:GetSpellData(_Q).level
+			if Qlevel > 0 then
+				local stacks = math_max(Buff:GetBuffCount(args.Target, "LockeQ"), 0)
+				if stacks > 0 then
+					local bonus = 1
+					if stacks == 2 then
+						bonus = 1.2
+					elseif stacks == 3 then
+						bonus = 1.4
+					end
+					args.RawMagical = args.RawMagical
+						+ stacks * (10 + 10 * Qlevel + (0.225 + 0.025 * Qlevel) * args.From.ap) * bonus
+				end
 			end
 		end,
 		["Orianna"] = function(args)
@@ -2044,10 +2072,10 @@ Damage = {
 			baseCriticalDamage = 1.0
 		elseif heroName == "Jhin" then
 			percentMod = 0.75
-		elseif heroName == "Yasuo" or heroName == "Yone" or heroName == "Senna" then
+		elseif heroName == "Senna" then
+			percentMod = 0.85
+		elseif heroName == "Yasuo" or heroName == "Yone" then
 			percentMod = 0.9
-		elseif heroName == "Yunara" then
-			baseCriticalDamage = baseCriticalDamage * (1.1 + 0.001 * from.ap)
 		end
 		return baseCriticalDamage * percentMod
 	end,
@@ -2311,7 +2339,7 @@ Data = {
 		end,
 	},
 
-	--26.09
+	--26.13
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
 		Ahri = { 4, false, 0.668 },
@@ -2387,6 +2415,7 @@ Data = {
 		Leona = { 1, true, 0.625 },
 		Lillia = { 4, false, 0.625 },
 		Lissandra = { 4, false, 0.656 },
+		Locke = { 4, true, 0.688 },
 		Lucian = { 5, false, 0.638 },
 		Lulu = { 3, false, 0.625 },
 		Lux = { 4, false, 0.669 },
@@ -3299,6 +3328,7 @@ SummonerSpell = {
 		
 				-- Check if the current time has exceeded the calculated cast time
 				if Game.Timer() > castTime then
+					casted = true
 					Control.CastSpell(hk)
 					self.CleanseStartTime = GetTickCount()
 					break
@@ -4094,14 +4124,8 @@ Target = {
 				table_insert(enemiesaa, enemy)
 			end
 			if Menu.Orbwalker.General.AttackBarrel:Value() and enemy.charName == "Gangplank" then
-				local validBarrels = {}
-				for _, obj in ipairs(Cached:GetPlants()) do
-					if obj and obj.charName:lower() == "gangplankbarrel" then
-						table.insert(validBarrels, obj)
-					end
-				end
-				for _, barrel in ipairs(validBarrels) do
-					if barrel then
+				for _, barrel in ipairs(Cached:GetPlants()) do
+					if barrel and barrel.charName:lower() == "gangplankbarrel" then
 						if barrel.health <= 1 and barrel.distance <= attackRange + barrel.boundingRadius then
 							return barrel
 						end
@@ -5028,7 +5052,8 @@ Cursor = {
 
 	StepPressKey = function(self)
 		if self.CastPos.type then
-			if self.CastPos.type ~= Obj_AI_Hero or self.CastPos.charName == "GangplankBarrel" then
+			if self.CastPos.type ~= Obj_AI_Hero then
+				self.ForceTCOUp = true
 				if Control.IsKeyDown(HK_TCO) then
 					Control.KeyUp(HK_TCO)
 				end
@@ -5072,6 +5097,7 @@ Cursor = {
 	StepWaitForReady = function(self)
 		if GetTickCount() > self.Timer then
 			self.Step = 0
+			self.ForceTCOUp = false
 		end
 	end,
 
@@ -5299,6 +5325,7 @@ Orbwalker = {
 	PostAttackBool = false,
 	AttackEnabled = true,
 	MovementEnabled = true,
+	TCOComboActive = false,
 
 	CanAttackC = function()
 		return true
@@ -5314,11 +5341,15 @@ Orbwalker = {
 		end
 		self.IsNone = self:HasMode(ORBWALKER_MODE_NONE)
 		self.Modes = self:GetModes()
-		if self:HasMode(ORBWALKER_MODE_COMBO) and not myHero.dead then
-			Control.KeyDown(HK_TCO)
-		else
+		local tcoComboActive = self.Modes[ORBWALKER_MODE_COMBO] and not myHero.dead
+		if tcoComboActive then
+			if not Cursor.ForceTCOUp and not Control.IsKeyDown(HK_TCO) then
+				Control.KeyDown(HK_TCO)
+			end
+		elseif self.TCOComboActive and Control.IsKeyDown(HK_TCO) then
 			Control.KeyUp(HK_TCO)
 		end
+		self.TCOComboActive = tcoComboActive
 		if Cursor.Step > 0 then
 			return
 		end
