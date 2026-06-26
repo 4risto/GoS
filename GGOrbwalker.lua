@@ -1,4 +1,4 @@
-local __version__ = 3.070
+local __version__ = 3.071
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -5003,11 +5003,12 @@ local MenuDrawCursor = Menu.Main.Drawings.Cursor
 Cursor = {
 
 	Step = 0,
+	ForceTCOUp = false,
 
 	Add = function(self, key, castPos)
 		if type(key) == "table" then
             self.Keys = key
-        else
+		else
             self.Keys = { key }  -- store it in a table format for consistency
 		end
 		self.CursorPos = cursorPos
