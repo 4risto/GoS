@@ -1,4 +1,4 @@
-local __version__ = 3.071
+local __version__ = 3.072
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -2073,7 +2073,7 @@ Damage = {
 		elseif heroName == "Jhin" then
 			percentMod = 0.75
 		elseif heroName == "Senna" then
-			percentMod = 0.85
+			percentMod = 0.8
 		elseif heroName == "Yasuo" or heroName == "Yone" then
 			percentMod = 0.9
 		end
@@ -2535,6 +2535,7 @@ Data = {
 	},
 
 	IsAttackSpell = {
+		["TrundleQ"] = true,
 		["YunaraQCrit"] = true,
 		["YunaraQCrit2"] = true,
 		["ViktorQBuff"] = true,
@@ -2557,6 +2558,10 @@ Data = {
 	IsNotAttack = {
 		["GravesAutoAttackRecoil"] = true,
 		["LeonaShieldOfDaybreakAttack"] = true,
+		["ShyvanaQAttack"] = true,
+		["ShyvanaQAttackDragon"] = true,
+		["ShyvanaQAttackDragon2"] = true,
+		["VolibearQAttack"] = true,
 	},
 
 	MinionRange = {
@@ -2633,7 +2638,7 @@ Data = {
 		["Renekton"] = { { Slot = _W, Key = HK_W } },
 		["Rengar"] = { { Slot = _Q, Key = HK_Q } },
 		["Sejuani"] = { { Slot = _E, Key = HK_E, ActiveCheck = true, SpellName = "SejuaniE2" } },
-		["Set"] = {{ Slot = _Q, Key = HK_Q } },
+		["Sett"] = {{ Slot = _Q, Key = HK_Q } },
 		["Shyvana"] = {{ Slot = _Q, Key = HK_Q } },
 		["Sivir"] = { { Slot = _W, Key = HK_W } },
 		["Talon"] = { { Slot = _Q, Key = HK_Q, OnCast = true, CanCancel = true } },
@@ -2665,12 +2670,16 @@ Data = {
 			return
 		end
 
+		if msg ~= KEY_DOWN and msg ~= KEY_UP then
+			return
+		end
+
 		if self.AttackResetSuccess or Control.IsKeyDown(HK_LUS) or GameIsChatOpen() then
 			return
 		end
 
 		for _, AttackReset in ipairs(self.AttackResetsList) do
-			if msg == KEY_UP and  wParam == AttackReset.Key then
+			if wParam == AttackReset.Key then
 				--Add a 600ms cooldown to prevent spamming the reset key
 				if GetTickCount() <= self.AttackResetKeyTimer + 600 then return end
 
@@ -2700,20 +2709,6 @@ Data = {
 					end
 					
 					self.ActiveAttackReset = AttackReset -- to 'CanResetAttack()' processing. ('Attack.Reset' check it)
-					
-					if Object.IsKindred then -- Preserve the original logic
-						Orbwalker:SetMovement(false)
-						local setTime = GetTickCount() + 550
-						Action:Add(function()
-							if GetTickCount() < setTime then
-								return false
-							end
-							Orbwalker:SetMovement(true)
-							return true
-						end)
-						return
-					end
-					
 					return
 				end
 			end
@@ -5153,6 +5148,7 @@ Attack = {
 			and spell.castEndTime > self.CastEndTime
 			and (spell.isAutoAttack or Data:IsAttack(spell.name))
 		then
+			self.Reset = false
 			-- spell.isAutoAttack then  and GameTimer() < self.LocalStart + 0.2
 			for i = 1, #Orbwalker.OnAttackCb do
 				Orbwalker.OnAttackCb[i]()
@@ -5235,8 +5231,9 @@ Attack = {
 		end
 		if self.CastEndTime > self.LocalStart then
         	if GameTimer() >= self.ServerStart + self:GetAnimation() - Data:GetLatency() - 0.01 then
+				self.Reset = false
 				return true
-			elseif self.Reset and not self:IsActive() then
+			elseif self.Reset and not self:IsActive() and not (myHero.pathing and myHero.pathing.isDashing) then
 				-- print('Reset AA Success')
             	return true
 			end
@@ -5352,6 +5349,9 @@ Orbwalker = {
 		end
 		self.TCOComboActive = tcoComboActive
 		if Cursor.Step > 0 then
+			return
+		end
+		if (Attack.Reset or Data.ActiveAttackReset) and myHero.pathing and myHero.pathing.isDashing then
 			return
 		end
 		if Data:Stop() then
@@ -5520,7 +5520,17 @@ Orbwalker = {
 		local particleCount = Game.ParticleCount()
 		for i = particleCount, 1, -1 do
 			local obj = Game.Particle(i)
-			if obj and obj.type == "obj_GeneralParticleEmitter" and obj.name:lower():find("kindred_base_e_stack_3")  then
+			local name = obj and obj.name and obj.name:lower()
+			if
+				obj
+				and obj.type == "obj_GeneralParticleEmitter"
+				and name
+				and name:find("kindred")
+				and name:find("_e_")
+				and name:find("stack_3")
+				and obj.pos
+				and GetDistance(obj.pos, unit.pos) < 100
+			then
 				return false
 			end
 		end
