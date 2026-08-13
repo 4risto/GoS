@@ -1,4 +1,4 @@
-local __version__ = 3.073
+local __version__ = 3.074
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -1225,7 +1225,7 @@ Menu = {
         self.Orbwalker.Keys:MenuElement({id = 'LaneClear', name = 'LaneClear Key', key = string.byte('V')})
         self.Orbwalker.Keys:MenuElement({id = 'Jungle', name = 'Jungle Key', key = string.byte('V')})
         self.Orbwalker.Keys:MenuElement({id = 'Flee', name = 'Flee Key', key = string.byte('A')})
-        self.Orbwalker.Keys:MenuElement({id = 'HoldKey', name = 'Hold Key', key = string.byte('H'), tooltip = 'Should be same in game keybinds'})
+        -- self.Orbwalker.Keys:MenuElement({id = 'HoldKey', name = 'Hold Key', key = string.byte('H'), tooltip = 'Should be same in game keybinds'})
         self.Orbwalker:MenuElement({id = 'General', name = 'General', type = MENU})
         self.Orbwalker.General:MenuElement({id = 'AttackBarrel', name = 'Attack Gangplank Barrel', value = true})
         self.Orbwalker.General:MenuElement({id = 'AttackPlants', name = 'Attack Plants(LaneClear Mode)', value = false})
@@ -1234,7 +1234,7 @@ Menu = {
         self.Orbwalker.General:MenuElement({id = 'FastKiting', name = 'Fast Kiting', value = true})
         self.Orbwalker.General:MenuElement({id = 'LaneClearHeroes', name = 'LaneClear Heroes', value = true})
         self.Orbwalker.General:MenuElement({id = 'AttackRange', name = 'AARange = RealRange - X', value = 35, min = 0, max = 35, step = 1})
-        self.Orbwalker.General:MenuElement({id = 'HoldRadius', name = 'Hold Radius', value = 0, min = 0, max = 250, step = 10})
+        self.Orbwalker.General:MenuElement({id = 'HoldRadius', name = 'Hold Radius', value = 100, min = 0, max = 250, step = 10})
         self.Orbwalker.General:MenuElement({id = 'ExtraWindUpTime', name = 'Extra WindUpTime', value = 0, min = -25, max = 75, step = 5})
         self.Orbwalker:MenuElement({id = 'RandomHumanizer', name = 'Random Humanizer', type = MENU})
         self.Orbwalker.RandomHumanizer:MenuElement({id = 'Min', name = 'Min', value = 100, min = 50, max = 300, step = 10})
@@ -1768,6 +1768,13 @@ Damage = {
 					+ (0.65 + 0.1 * args.From:GetSpellData(_Q).level) * args.From.totalDamage + 0.5 * args.From.ap
 			end
 		end,
+		["Jade_Vayne"] = function(args)
+			if Buff:HasBuff(args.From, "jade_vayneq_bonus") then
+				local level = args.From:GetSpellData(_Q).level
+				local ratio = 0.25 + 0.05 * level
+				args.RawPhysical = args.RawPhysical + ratio * args.From.totalDamage
+			end
+		end,
 	},
 
 	ItemStaticDamage = {
@@ -1933,6 +1940,16 @@ Damage = {
 				local level = args.From:GetSpellData(_W).level
 				args.CalculatedTrue = args.CalculatedTrue
 					+ math_max((0.05 + 0.01 * level) * args.Target.maxHealth, 35 + 15 * level)
+			end
+		end,
+		["Jade_Vayne"] = function(args)
+			if Buff:GetBuffCount(args.Target, "Jade_VayneW_Debuff") == 2 then
+				local level = args.From:GetSpellData(_W).level
+				local damage = (10 + 10 * level) + (0.03 + 0.01 * level) * args.Target.maxHealth
+				if args.Target.team == 300 then
+					damage = math_min(damage, 200)
+				end
+				args.CalculatedTrue = args.CalculatedTrue + damage
 			end
 		end,
 		["Zed"] = function(args)
@@ -2489,7 +2506,7 @@ Data = {
 		end,
 	},
 
-	--26.13
+	--26.16
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
 		Ahri = { 4, false, 0.668 },
@@ -2498,19 +2515,19 @@ Data = {
 		Alistar = { 1, true, 0.625 },
 		Ambessa = { 2, true, 0.625 },
 		Amumu = { 1, true, 0.736 },
-		Anivia = { 4, false, 0.625 },
+		Anivia = { 4, false, 0.658 },
 		Annie = { 4, false, 0.61 },
 		Aphelios = { 5, false, 0.665 },
 		Ashe = { 5, false, 0.658 },
 		AurelionSol = { 4, false, 0.625 },
 		Aurora = { 4, false, 0.668 },
 		Azir = { 4, true, 0.625 },
-		Bard = { 3, false, 0.625 },
-		Belveth = { 4, true, 0.85 },
+		Bard = { 3, false, 0.658 },
+		Belveth = { 4, true, 0.67 },
 		Blitzcrank = { 1, true, 0.625 },
-		Brand = { 4, false, 0.625 },
+		Brand = { 4, false, 0.681 },
 		Braum = { 1, true, 0.644 },
-		Briar = { 4, true, 0.664 },
+		Briar = { 4, true, 0.644 },
 		Caitlyn = { 5, false, 0.681 },
 		Camille = { 3, true, 0.644 },
 		Cassiopeia = { 4, false, 0.647 },
@@ -2535,7 +2552,7 @@ Data = {
 		Graves = { 4, false, 0.475 },
 		Gwen = { 4, true, 0.69 },
 		Hecarim = { 2, true, 0.67 },
-		Heimerdinger = { 3, false, 0.625 },
+		Heimerdinger = { 3, false, 0.658 },
 		Hwei = { 4, false, 0.69 },
 		Illaoi = { 3, true, 0.625 },
 		Irelia = { 3, true, 0.656 },
@@ -2546,7 +2563,7 @@ Data = {
 		Jayce = { 4, false, 0.658 },
 		Jhin = { 5, false, 0.625 },
 		Jinx = { 5, false, 0.625 },
-		KSante = { 1, true, 0.625 },
+		KSante = { 1, true, 0.688 },
 		Kaisa = { 5, false, 0.644 },
 		Kalista = { 5, false, 0.694 },
 		Karma = { 4, false, 0.625 },
@@ -2623,9 +2640,9 @@ Data = {
 		Soraka = { 3, false, 0.625 },
 		Swain = { 3, false, 0.625 },
 		Sylas = { 4, true, 0.645 },
-		Syndra = { 4, false, 0.625 },
+		Syndra = { 4, false, 0.658 },
 		TahmKench = { 1, true, 0.658 },
-		Taliyah = { 4, false, 0.625 },
+		Taliyah = { 4, false, 0.658 },
 		Talon = { 4, true, 0.625 },
 		Taric = { 1, true, 0.625 },
 		Teemo = { 4, false, 0.69 },
@@ -2633,7 +2650,7 @@ Data = {
 		Tristana = { 5, false, 0.656 },
 		Trundle = { 2, true, 0.67 },
 		Tryndamere = { 4, true, 0.67 },
-		TwistedFate = { 4, false, 0.651 },
+		TwistedFate = { 4, false, 0.625 },
 		Twitch = { 5, false, 0.679 },
 		Udyr = { 2, true, 0.65 },
 		Urgot = { 2, true, 0.625 },
@@ -2666,6 +2683,7 @@ Data = {
 		Zyra = { 2, false, 0.681 },
 		-- Classic
 		Jade_Ahri = { 4, false, 0.668 },
+		Jade_Akali = { 4, true, 0.694 },
 		Jade_Alistar = { 1, true, 0.625 },
 		Jade_Amumu = { 1, true, 0.638 },
 		Jade_Anivia = { 4, false, 0.625 },
@@ -2690,6 +2708,7 @@ Data = {
 		Jade_Kassadin = { 4, true, 0.64 },
 		Jade_Katarina = { 4, true, 0.658 },
 		Jade_Kayle = { 4, false, 0.638 },
+		Jade_Kennen = { 4, false, 0.69 },
 		Jade_KogMaw = { 5, false, 0.665 },
 		Jade_LeeSin = { 3, true, 0.651 },
 		Jade_Leona = { 1, true, 0.625 },
@@ -2708,6 +2727,7 @@ Data = {
 		Jade_Rammus = { 1, true, 0.625 },
 		Jade_Ryze = { 4, false, 0.625 },
 		Jade_Shaco = { 4, true, 0.694 },
+		Jade_Shen = { 1, true, 0.651 },
 		Jade_Singed = { 1, true, 0.613 },
 		Jade_Sion = { 1, true, 0.625 },
 		Jade_Sivir = { 5, false, 0.679 },
@@ -2840,6 +2860,7 @@ Data = {
 		["Katarina"] = { { Slot = _E, Key = HK_E, CanCancel = true, OnCast = true } },
 		["Kindred"] = { { Slot = _Q, Key = HK_Q, OnCast = true, CanCancel = true } },
 		["Leona"] = { { Slot = _Q, Key = HK_Q } },
+		["Jade_Leona"] = { { Slot = _Q, Key = HK_Q } },
 		["Lucian"] = { { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true } },
 		["Malphite"] = { { Slot = _W, Key = HK_W } },		
 		["MasterYi"] = { { Slot = _W, Key = HK_W } },
@@ -2864,6 +2885,7 @@ Data = {
 			{ Slot = _W, Key = HK_W, CanCancel = true, Name = "RedCardLock", Buff = { ["redcardpreattack"] = true } },
 		},
 		["Vayne"] = { { Slot = _Q, Key = HK_Q, Buff = { ["vaynetumblebonus"] = true }, CanCancel = true }},
+		["Jade_Vayne"] = { { Slot = _Q, Key = HK_Q, Buff = { ["jade_vayneq_bonus"] = true }, CanCancel = true }},
 		["Vi"] = { { Slot = _E, Key = HK_E } },
 		["Volibear"] = { { Slot = _Q, Key = HK_Q } },
 		["MonkeyKing"] = { { Slot = _Q, Key = HK_Q } },
@@ -4672,6 +4694,13 @@ Health = {
 				local animation = s.animation
 				local windup = s.windup
 				local target = s.target
+				if obj.type == Obj_AI_Turret then
+					local ad = obj.attackData
+					local adWindup = ad and ad.windUpTime
+					if adWindup and adWindup > 0 then
+						windup = adWindup
+					end
+				end
 				if endTime and speed and animation and windup and target and endTime > timer then
 					self.ActiveAttacks[handle] = {
 						Speed = speed,
@@ -5190,7 +5219,8 @@ do
 
 	_G.Control.Evade = function(a)
 		local pos = GetControlPos(a)
-		if pos and EvadeSupport == nil then
+		if pos then
+			EvadeSupport = nil
 			if Cursor.Step == 0 then
 				Cursor:Add(MOUSEEVENTF_RIGHTDOWN, pos)
 				return true
@@ -5198,12 +5228,16 @@ do
 			EvadeSupport = pos
 			return true
 		end
+		EvadeSupport = nil
 		return false
 	end
 
 	_G.Control.Attack = function(target)
 		if target then
-			Cursor:Add(AttackKey:Key(), target)
+			local issued = Cursor:Add(AttackKey:Key(), target)
+			if not issued then
+				return false
+			end
 			if FastKiting:Value() then
 				Movement.MoveTimer = 0
 			end
@@ -5242,12 +5276,12 @@ do
 		return false
 	end
 
-	_G.Control.Hold = function(key)
-		CastKey(key)
-		Movement.MoveTimer = 0
-		Orbwalker.CanHoldPosition = false
-		return true
-	end
+	-- _G.Control.Hold = function(key)
+	-- 	CastKey(key)
+	-- 	Movement.MoveTimer = 0
+	-- 	Orbwalker.CanHoldPosition = false
+	-- 	return true
+	-- end
 
 	_G.Control.Move = function(a, b, c)
 		if Cursor.Step > 0 or GetTickCount() < Movement.MoveTimer then
@@ -5263,7 +5297,7 @@ do
 			CastKey(MOUSEEVENTF_RIGHTDOWN)
 		end
 		Movement.MoveTimer = GetTickCount() + Movement:GetHumanizer()
-		Orbwalker.CanHoldPosition = true
+		-- Orbwalker.CanHoldPosition = true
 		return true
 	end
 end
@@ -5291,8 +5325,9 @@ Cursor = {
 			self.IsMouseClick = key == MOUSEEVENTF_RIGHTDOWN
 			self.Timer = GetTickCount() + MenuDelay:Value()
 			self:StepSetToCastPos()
-			self:StepPressKey()
+			return self:StepPressKey()
 		end
+		return false
 	end,
 
 	StepReady = function(self)
@@ -5300,7 +5335,9 @@ Cursor = {
 			self:Add(FlashHelper.Flash, myHero.pos:Extended(Vector(mousePos), 600))
 			FlashHelper.Flash = nil
 		elseif EvadeSupport then
-			self:Add(MOUSEEVENTF_RIGHTDOWN, EvadeSupport)
+			if JustEvade and JustEvade.Evading() then
+				self:Add(MOUSEEVENTF_RIGHTDOWN, EvadeSupport)
+			end
 			EvadeSupport = nil
 		end
 	end,
@@ -5340,7 +5377,7 @@ Cursor = {
 				if (GetDistance(Game.cursorPos(), self.correctedCastPos)) > 5 then
 					--print("error cursor position mismatch" ..GameTimer())
 					self:StepSetToCursorPos()
-					return
+					return false
 				end
 				if Control.IsKeyDown(key) and myHero.activeSpell.isCharging then
 					Control.KeyUp(key)
@@ -5351,6 +5388,7 @@ Cursor = {
 			end
 		end
 		self.Step = 1
+		return true
 	end,
 
 	StepWaitForResponse = function(self)
@@ -5565,7 +5603,7 @@ Attack = {
 Orbwalker = {
 
 	LastTarget = nil,
-	CanHoldPosition = true,
+	-- CanHoldPosition = true,
 	PostAttackTimer = 0,
 	IsNone = true,
 	OnPreAttackCb = {},
@@ -5575,7 +5613,7 @@ Orbwalker = {
 	OnMoveCb = {},
 	Menu = Menu.Orbwalker,
 	MenuDrawings = Menu.Main.Drawings,
-	HoldPositionButton = Menu.Orbwalker.Keys.HoldKey,
+	-- HoldPositionButton = Menu.Orbwalker.Keys.HoldKey,
 
 	MenuKeys = {
 		[ORBWALKER_MODE_COMBO] = {},
@@ -5863,9 +5901,17 @@ Orbwalker = {
 						args.Target = Target:GetComboTarget()
 					end
 					if args.Target then
-						self.LastTarget = args.Target
 						local targetpos = args.Target.pos
-						if targetpos and targetpos:ToScreen().onScreen and Control.Attack(args.Target) then
+						local attackRangeCheck = Data:IsInAutoAttackRange(
+							myHero,
+							args.Target,
+							-self.Menu.General.AttackRange:Value()
+						) or (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(args.Target))
+						if targetpos and targetpos:ToScreen().onScreen and attackRangeCheck then
+							self.LastTarget = args.Target
+							if not Control.Attack(args.Target) then
+								return false
+							end
 							Attack.Reset = false
 							Attack.LocalStart = GameTimer()
 							self.PostAttackBool = true
@@ -5897,9 +5943,9 @@ Orbwalker = {
 			end
 			local mePos = myHero.pos
 			if IsInRange(mePos, mousePos, self.Menu.General.HoldRadius:Value()) then
-				if self.CanHoldPosition then
-					Control.Hold(self.HoldPositionButton:Key())
-				end
+				-- if self.CanHoldPosition then
+				-- 	Control.Hold(self.HoldPositionButton:Key())
+				-- end
 				return
 			end
 			if GetTickCount() > Movement.MoveTimer then
@@ -5924,8 +5970,8 @@ Orbwalker = {
 					Control.Move(args.Target)
 					return
 				end
-				local pos = IsInRange(mePos, mousePos, 100) and mePos:Extend(mousePos, 100) or nil
-				Control.Move(pos)
+				-- local pos = IsInRange(mePos, mousePos, 100) and mePos:Extend(mousePos, 100) or nil
+				Control.Move()
 			end
 		end
 	end,
