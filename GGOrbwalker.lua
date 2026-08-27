@@ -1,4 +1,4 @@
-local __version__ = 3.074
+local __version__ = 3.075
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -160,6 +160,9 @@ local GameMapID = Game.mapID
 local GameIsOnTop = Game.IsOnTop
 local GameIsChatOpen = Game.IsChatOpen
 local GameCanUseSpell = Game.CanUseSpell
+local GameMissile = Game.Missile
+local GameMissileCount = Game.MissileCount
+local GameGetObjectByNetID = Game.GetObjectByNetID
 local GameWard = Game.Ward
 local GameHero = Game.Hero
 local GameObject = Game.Object
@@ -1863,16 +1866,17 @@ Damage = {
 			args.RawPhysical = args.RawTotal
 			local level = args.From.levelData.lvl
 			if Buff:HasBuff(myHero, "zeriqpassiveready") then
+				local percentDamage = (1 + (10 / 17) * (level - 1)) / 100 * args.Target.maxHealth
+				if args.Target.team == 300 then
+					percentDamage = math_min(300, percentDamage)
+				end
 				args.RawMagical = 70 + 5 * level + args.From.ap * 1.1
-					+ (1 + (10 / 17) * (level - 1)) / 100 * args.Target.maxHealth
+					+ percentDamage
 			else
 				args.RawMagical = 10 + (15 / 17) * (level - 1) * (0.7025 + 0.0175 * (level-1)) + args.From.ap * 0.03
 				if args.Target.health < 70 + (90 / 17) * (level - 1) + args.From.ap * 0.2 then
 					args.RawMagical = 9999 --(Execute targets, < this health)
 				end
-			end
-			if args.Target.team == 300 then
-				args.RawMagical = math_min(300, args.RawMagical)
 			end
 		end,
 		["Jhin"] = function(args)
@@ -1939,7 +1943,7 @@ Damage = {
 			if Buff:GetBuffCount(args.Target, "VayneSilveredDebuff") == 2 then
 				local level = args.From:GetSpellData(_W).level
 				args.CalculatedTrue = args.CalculatedTrue
-					+ math_max((0.05 + 0.01 * level) * args.Target.maxHealth, 35 + 15 * level)
+					+ math_max((0.025 + 0.015 * level) * args.Target.maxHealth, 25 + 15 * level)
 			end
 		end,
 		["Jade_Vayne"] = function(args)
@@ -2242,7 +2246,7 @@ Damage = {
 		elseif heroName == "Senna" then
 			percentMod = 0.8
 		elseif heroName == "Yasuo" or heroName == "Yone" then
-			percentMod = 0.9
+			percentMod = 0.95
 		end
 		return baseCriticalDamage * percentMod
 	end,
@@ -2346,7 +2350,11 @@ Data = {
 		end,
 		["Aphelios"] = function()
 			if Buff:HasBuff(myHero, "ApheliosCrescendumManager") then
-				return 0.1067
+				local spell = myHero.activeSpell
+				if spell and spell.valid and spell.name == "ApheliosCrescendumAttack" then
+					return spell.windup
+				end
+				return 0.1067 / Attack:GetAttackSpeed()
 			end
 			return nil
 		end,
@@ -2370,22 +2378,6 @@ Data = {
 		end,
 		["Xerath"] = function()
 			return Buff:HasBuff(myHero, "XerathArcanopulseChargeUp")
-		end,
-	},
-
-	DisableAttackSpells = {
-		["Renata"] = function(spell)
-			local name = spell.name
-			return (name == "RenataQ" or name == "RenataE" or name == "RenataR")
-				and spell.castEndTime - Game.Timer() > 0.05
-		end,
-		
-		["Caitlyn"] = function(spell)
-			local name = spell.name
-			if (name == "CaitlynQ" or name == "CaitlynE" or name == "CaitlynW" or name == "CaitlynR")and spell.endTime - Game.Timer() > 0.04 then
-				--print(Game.Timer())
-			end 
-			return (name == "CaitlynQ" or name == "CaitlynE" or name == "CaitlynW" or name == "CaitlynR")and spell.endTime - Game.Timer() > 0.04
 		end,
 	},
 
@@ -2427,7 +2419,7 @@ Data = {
 			return nil
 		end,
 		["Hwei"] = function()
-			return 3470
+			return 2800
 		end,
 		["Aphelios"] = function()
 			if Buff:HasBuff(myHero, "ApheliosCrescendumManager") then
@@ -2506,38 +2498,39 @@ Data = {
 		end,
 	},
 
-	--26.16
+	--26.17
+	-- priority, melee, base attack speed, optional attack speed ratio
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
-		Ahri = { 4, false, 0.668 },
+		Ahri = { 4, false, 0.668, 0.625 },
 		Akali = { 4, true, 0.625 },
-		Akshan = { 5, false, 0.638 },
+		Akshan = { 5, false, 0.638, 0.4 },
 		Alistar = { 1, true, 0.625 },
 		Ambessa = { 2, true, 0.625 },
-		Amumu = { 1, true, 0.736 },
-		Anivia = { 4, false, 0.658 },
-		Annie = { 4, false, 0.61 },
-		Aphelios = { 5, false, 0.665 },
+		Amumu = { 1, true, 0.736, 0.638 },
+		Anivia = { 4, false, 0.658, 0.625 },
+		Annie = { 4, false, 0.61, 0.625 },
+		Aphelios = { 5, false, 0.665, 0.658 },
 		Ashe = { 5, false, 0.658 },
 		AurelionSol = { 4, false, 0.625 },
 		Aurora = { 4, false, 0.668 },
-		Azir = { 4, true, 0.625 },
+		Azir = { 4, true, 0.625, 0.694 },
 		Bard = { 3, false, 0.658 },
 		Belveth = { 4, true, 0.67 },
 		Blitzcrank = { 1, true, 0.625 },
-		Brand = { 4, false, 0.681 },
+		Brand = { 4, false, 0.681, 0.625 },
 		Braum = { 1, true, 0.644 },
-		Briar = { 4, true, 0.644 },
-		Caitlyn = { 5, false, 0.681 },
+		Briar = { 4, true, 0.644, 0.669 },
+		Caitlyn = { 5, false, 0.681, 0.625 },
 		Camille = { 3, true, 0.644 },
 		Cassiopeia = { 4, false, 0.647 },
-		Chogath = { 1, true, 0.658 },
+		Chogath = { 1, true, 0.658, 0.625 },
 		Corki = { 5, false, 0.644 },
 		Darius = { 2, true, 0.625 },
-		Diana = { 4, true, 0.625 },
-		DrMundo = { 1, true, 0.67 },
+		Diana = { 4, true, 0.625, 0.694 },
+		DrMundo = { 1, true, 0.67, 0.625 },
 		Draven = { 5, false, 0.679 },
-		Ekko = { 4, true, 0.688 },
+		Ekko = { 4, true, 0.688, 0.625 },
 		Elise = { 3, false, 0.625 },
 		Evelynn = { 4, true, 0.667 },
 		Ezreal = { 5, false, 0.625 },
@@ -2545,15 +2538,15 @@ Data = {
 		Fiora = { 3, true, 0.69 },
 		Fizz = { 4, true, 0.658 },
 		Galio = { 1, true, 0.625 },
-		Gangplank = { 4, true, 0.658 },
+		Gangplank = { 4, true, 0.658, 0.69 },
 		Garen = { 1, true, 0.625 },
 		Gnar = { 1, false, 0.625 },
-		Gragas = { 2, true, 0.675 },
-		Graves = { 4, false, 0.475 },
+		Gragas = { 2, true, 0.675, 0.625 },
+		Graves = { 4, false, 0.475, 0.49 },
 		Gwen = { 4, true, 0.69 },
 		Hecarim = { 2, true, 0.67 },
-		Heimerdinger = { 3, false, 0.658 },
-		Hwei = { 4, false, 0.69 },
+		Heimerdinger = { 3, false, 0.658, 0.625 },
+		Hwei = { 4, false, 0.69, 0.658 },
 		Illaoi = { 3, true, 0.625 },
 		Irelia = { 3, true, 0.656 },
 		Ivern = { 1, true, 0.644 },
@@ -2561,60 +2554,60 @@ Data = {
 		JarvanIV = { 3, true, 0.658 },
 		Jax = { 3, true, 0.638 },
 		Jayce = { 4, false, 0.658 },
-		Jhin = { 5, false, 0.625 },
+		Jhin = { 5, false, 0.625, 0 },
 		Jinx = { 5, false, 0.625 },
-		KSante = { 1, true, 0.688 },
+		KSante = { 1, true, 0.688, 0.625 },
 		Kaisa = { 5, false, 0.644 },
 		Kalista = { 5, false, 0.694 },
 		Karma = { 4, false, 0.625 },
 		Karthus = { 4, false, 0.625 },
 		Kassadin = { 4, true, 0.64 },
 		Katarina = { 4, true, 0.658 },
-		Kayle = { 4, false, 0.625 },
+		Kayle = { 4, false, 0.625, 0.667 },
 		Kayn = { 4, true, 0.669 },
-		Kennen = { 4, false, 0.625 },
+		Kennen = { 4, false, 0.625, 0.69 },
 		Khazix = { 4, true, 0.668 },
 		Kindred = { 4, false, 0.625 },
 		Kled = { 2, true, 0.625 },
 		KogMaw = { 5, false, 0.665 },
-		Leblanc = { 4, false, 0.658 },
+		Leblanc = { 4, false, 0.658, 0.625 },
 		LeeSin = { 3, true, 0.651 },
 		Leona = { 1, true, 0.625 },
 		Lillia = { 4, false, 0.625 },
-		Lissandra = { 4, false, 0.656 },
-		Locke = { 4, true, 0.688 },
+		Lissandra = { 4, false, 0.656, 0.625 },
+		Locke = { 4, true, 0.688, 0.625 },
 		Lucian = { 5, false, 0.638 },
 		Lulu = { 3, false, 0.625 },
-		Lux = { 4, false, 0.669 },
-		Malphite = { 1, true, 0.736 },
+		Lux = { 4, false, 0.669, 0.625 },
+		Malphite = { 1, true, 0.736, 0.638 },
 		Malzahar = { 3, false, 0.625 },
-		Maokai = { 2, true, 0.8 },
+		Maokai = { 2, true, 0.8, 0.695 },
 		MasterYi = { 5, true, 0.679 },
 		Mel = { 4, false, 0.625 },
 		Milio = { 3, false, 0.625 },
 		MissFortune = { 5, false, 0.656 },
-		MonkeyKing = { 3, true, 0.69 },
+		MonkeyKing = { 3, true, 0.69, 0.658 },
 		Mordekaiser = { 4, true, 0.625 },
 		Morgana = { 3, false, 0.625 },
-		Naafiri = { 4, true, 0.663 },
+		Naafiri = { 4, true, 0.663, 0.625 },
 		Nami = { 3, false, 0.644 },
 		Nasus = { 2, true, 0.638 },
-		Nautilus = { 1, true, 0.706 },
-		Neeko = { 4, false, 0.625 },
+		Nautilus = { 1, true, 0.706, 0.612 },
+		Neeko = { 4, false, 0.625, 0.67 },
 		Nidalee = { 4, false, 0.638 },
-		Nilah = { 5, true, 0.697 },
+		Nilah = { 5, true, 0.697, 0.67 },
 		Nocturne = { 4, true, 0.721 },
 		Nunu = { 2, true, 0.625 },
-		Olaf = { 2, true, 0.72 },
+		Olaf = { 2, true, 0.72, 0.694 },
 		Orianna = { 4, false, 0.658 },
 		Ornn = { 2, true, 0.625 },
 		Pantheon = { 3, true, 0.658 },
-		Poppy = { 2, true, 0.658 },
+		Poppy = { 2, true, 0.658, 0.625 },
 		Pyke = { 4, true, 0.667 },
-		Qiyana = { 4, true, 0.688 },
+		Qiyana = { 4, true, 0.688, 0.625 },
 		Quinn = { 5, false, 0.668 },
 		Rakan = { 3, true, 0.635 },
-		Rammus = { 1, true, 0.7 },
+		Rammus = { 1, true, 0.7, 0.625 },
 		RekSai = { 2, true, 0.667 },
 		Rell = { 1, true, 0.625 },
 		Renata = { 2, false, 0.625 },
@@ -2622,16 +2615,16 @@ Data = {
 		Rengar = { 4, true, 0.667 },
 		Riven = { 4, true, 0.625 },
 		Rumble = { 4, true, 0.644 },
-		Ryze = { 4, false, 0.658 },
+		Ryze = { 4, false, 0.658, 0.625 },
 		Samira = { 5, false, 0.658 },
-		Sejuani = { 2, true, 0.688 },
-		Senna = { 5, false, 0.625 },
-		Seraphine = { 3, false, 0.669 },
+		Sejuani = { 2, true, 0.688, 0.625 },
+		Senna = { 5, false, 0.625, 0.4 },
+		Seraphine = { 3, false, 0.669, 0.625 },
 		Sett = { 2, true, 0.625 },
 		Shaco = { 4, true, 0.694 },
-		Shen = { 1, true, 0.751 },
+		Shen = { 1, true, 0.751, 0.651 },
 		Shyvana = { 2, true, 0.638 },
-		Singed = { 1, true, 0.7 },
+		Singed = { 1, true, 0.7, 0.625 },
 		Sion = { 1, true, 0.679 },
 		Sivir = { 5, false, 0.625 },
 		Skarner = { 2, true, 0.625 },
@@ -2640,47 +2633,47 @@ Data = {
 		Soraka = { 3, false, 0.625 },
 		Swain = { 3, false, 0.625 },
 		Sylas = { 4, true, 0.645 },
-		Syndra = { 4, false, 0.658 },
+		Syndra = { 4, false, 0.658, 0.625 },
 		TahmKench = { 1, true, 0.658 },
-		Taliyah = { 4, false, 0.658 },
+		Taliyah = { 4, false, 0.658, 0.625 },
 		Talon = { 4, true, 0.625 },
 		Taric = { 1, true, 0.625 },
 		Teemo = { 4, false, 0.69 },
 		Thresh = { 1, true, 0.625 },
-		Tristana = { 5, false, 0.656 },
+		Tristana = { 5, false, 0.656, 0.694 },
 		Trundle = { 2, true, 0.67 },
-		Tryndamere = { 4, true, 0.67 },
-		TwistedFate = { 4, false, 0.625 },
+		Tryndamere = { 4, true, 0.67, 0.725 },
+		TwistedFate = { 4, false, 0.625, 0.651 },
 		Twitch = { 5, false, 0.679 },
 		Udyr = { 2, true, 0.65 },
 		Urgot = { 2, true, 0.625 },
 		Varus = { 5, false, 0.658 },
-		Vayne = { 5, false, 0.658 },
+		Vayne = { 5, false, 0.658, 0.67 },
 		Veigar = { 4, false, 0.625 },
-		Velkoz = { 4, false, 0.643 },
-		Vex = { 4, false, 0.669 },
+		Velkoz = { 4, false, 0.643, 0.625 },
+		Vex = { 4, false, 0.669, 0.625 },
 		Vi = { 2, true, 0.644 },
 		Viego = { 4, true, 0.658 },
 		Viktor = { 4, false, 0.658 },
 		Vladimir = { 3, false, 0.658 },
-		Volibear = { 2, true, 0.625 },
+		Volibear = { 2, true, 0.625, 0.7 },
 		Warwick = { 2, true, 0.638 },
 		Xayah = { 5, false, 0.658 },
-		Xerath = { 4, false, 0.658 },
+		Xerath = { 4, false, 0.658, 0.625 },
 		XinZhao = { 3, true, 0.645 },
-		Yasuo = { 4, true, 0.697 },
+		Yasuo = { 4, true, 0.697, 0.67 },
 		Yone = { 4, true, 0.625 },
 		Yorick = { 2, true, 0.625 },
 		Yunara = { 5, false, 0.65 },
 		Yuumi = { 3, false, 0.625 },
 		Zaahen = { 4, true, 0.625 },
-		Zac = { 1, true, 0.736 },
+		Zac = { 1, true, 0.736, 0.638 },
 		Zed = { 4, true, 0.651 },
-		Zeri = { 5, false, 0.658 },
+		Zeri = { 5, false, 0.658, 0.625 },
 		Ziggs = { 4, false, 0.656 },
-		Zilean = { 3, false, 0.658 },
-		Zoe = { 4, false, 0.658 },
-		Zyra = { 2, false, 0.681 },
+		Zilean = { 3, false, 0.658, 0.625 },
+		Zoe = { 4, false, 0.658, 0.625 },
+		Zyra = { 2, false, 0.681, 0.625 },
 		-- Classic
 		Jade_Ahri = { 4, false, 0.668 },
 		Jade_Akali = { 4, true, 0.694 },
@@ -2742,7 +2735,7 @@ Data = {
 		Jade_Twitch = { 5, false, 0.679 },
 		Jade_Vayne = { 5, false, 0.658 },
 		Jade_Veigar = { 4, false, 0.625 },
-		Jade_Warwick = { 2, true, 0.679 },
+		Jade_Warwick = { 2, true, 0.644 },
 		Jade_Wukong = { 3, true, 0.658 },
 		Jade_Zilean = { 3, false, 0.625 },
 	},
@@ -2818,23 +2811,57 @@ Data = {
 		["HA_OrderMinionSuper"] = 170,
 	},
 
+	CaitlynConsumedMarks = { E = {}, W = {} },
+
 	ExtraAttackRanges = {
-		["Caitlyn"] = function(target)
+		["Aphelios"] = function(target)
 			if
 				target
-				and (
-					Buff:GetBuffDuration(target, "caitlynwsight") > 0.75
-					or Buff:HasBuff(target, "eternals_caitlyneheadshottracker")
-				)
-			then --Buff:GetBuffDuration(enemy, "eternals_caitlyneheadshottracker") > 0.75
-				--print(Game.Timer())
-			
-				--	print(Buff:GetBuffDuration(target, "caitlynwsight"), Buff:HasBuff(target, "eternals_caitlyneheadshottracker"))
-				return 425
+				and Buff:HasBuff(myHero, "aphelioscalibrumbonusrangebuff")
+				and Buff:HasBuff(target, "aphelioscalibrumbonusrangedebuff")
+			then
+				return math_max(0, 1800 - myHero.range - myHero.boundingRadius - target.boundingRadius)
+			end
+			return 0
+		end,
+		["Caitlyn"] = function(target)
+			if not target then
+				return 0
+			end
+
+			local targetID = target.networkID
+			local consumedMarks = Data.CaitlynConsumedMarks
+			local eStartTime = Buff:GetBuffStartTime(target, "eternals_caitlyneheadshottracker")
+			local wStartTime = Buff:GetBuffStartTime(target, "caitlynwsight")
+			local hasEMark = eStartTime > 0 and consumedMarks.E[targetID] ~= eStartTime
+			local hasWMark =
+				wStartTime > 0
+				and Buff:GetBuffDuration(target, "caitlynwsight") > 0.75
+				and consumedMarks.W[targetID] ~= wStartTime
+			if hasEMark or hasWMark then
+				return math_max(0, 1300 - myHero.range - myHero.boundingRadius - target.boundingRadius)
 			end
 			return 0
 		end,
 	},
+
+	ConsumeCaitlynMark = function(self, target)
+		if not target then
+			return
+		end
+
+		local targetID = target.networkID
+		local eStartTime = Buff:GetBuffStartTime(target, "eternals_caitlyneheadshottracker")
+		if eStartTime > 0 and self.CaitlynConsumedMarks.E[targetID] ~= eStartTime then
+			self.CaitlynConsumedMarks.E[targetID] = eStartTime
+			return
+		end
+
+		local wStartTime = Buff:GetBuffStartTime(target, "caitlynwsight")
+		if wStartTime > 0 and self.CaitlynConsumedMarks.W[targetID] ~= wStartTime then
+			self.CaitlynConsumedMarks.W[targetID] = wStartTime
+		end
+	end,
 
 	AttackResets = {
 		["Aatrox"] = { { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true } },
@@ -3012,7 +3039,7 @@ Data = {
 				result = result + 380
 			else
 				result = result + from.boundingRadius + target.boundingRadius
-				if targetType == Obj_AI_Hero and self.ExtraAttackRange then
+				if from.networkID == myHero.networkID and targetType == Obj_AI_Hero and self.ExtraAttackRange then
 					result = result + self.ExtraAttackRange(target)
 				end
 			end
@@ -3034,8 +3061,6 @@ Data = {
 		end
 		return false
 	end,
-
-
 
 	IsAttack = function(self, name)
 		if self.IsAttackSpell[name] then
@@ -3068,14 +3093,21 @@ Data = {
 		if self.IsChanneling and self.IsChanneling() then
 			return false
 		end
-		if self.CanDisableAttack and self.CanDisableAttack() then
+		if myHero.pathing and myHero.pathing.isDashing then
 			return false
 		end
-		if self.CanDisableAttackSpell then
-			local spell = myHero.activeSpell
-			if spell and spell.valid and self.CanDisableAttackSpell(spell) then
-				return false
-			end
+		local spell = myHero.activeSpell
+		if
+			spell
+			and spell.valid
+			and spell.castEndTime
+			and spell.castEndTime > GameTimer()
+			and not (spell.isAutoAttack or (spell.name and self:IsAttack(spell.name)))
+		then
+			return false
+		end
+		if self.CanDisableAttack and self.CanDisableAttack() then
+			return false
 		end
 		-- reduce spam clicks during hardCC
 		if Buff:HasBuffTypes(myHero, self.HardCCAttackTypes) then
@@ -3162,7 +3194,6 @@ end
 
 Data.IsChanneling = Data.ChannelingBuffs[Data.HeroName]
 Data.CanAllowMovement = Data.AllowMovement[Data.HeroName]
-Data.CanDisableAttackSpell = Data.DisableAttackSpells[Data.HeroName]
 Data.CanDisableAttack = Data.DisableAttackBuffs[Data.HeroName]
 Data.SpecialMissileSpeed = Data.SpecialMissileSpeeds[Data.HeroName]
 Data.HeroData = Data.HEROES[Data.HeroName]
@@ -4387,26 +4418,9 @@ Target = {
 		end
 		for i = 1, #enemies do
 			local enemy = enemies[i]
-			--print(myHero.range)
 			local extraRange = enemy.boundingRadius
-			if	Object.IsCaitlyn then		
-				if _G.CTRLCait==nil	and (
-						Buff:GetBuffDuration(enemy, "caitlynwsight") > 0.75
-						or Buff:HasBuff(enemy, "eternals_caitlyneheadshottracker")
-					)
-				then
-					--	print(Game.Timer())
-					--	print(Buff:GetBuffDuration(enemy, "caitlynwsight"), Buff:HasBuff(enemy, "eternals_caitlyneheadshottracker"))
-					extraRange = extraRange + 425
-				end
-
-				if _G.CTRLCait~=nil then
-					if Buff:HasBuff(enemy, "eternals_caitlyneheadshottracker") and _G.lastEProc+3<Game.Timer() then
-						extraRange = extraRange + 425
-					elseif Buff:GetBuffDuration(enemy, "caitlynwsight") > 0.75 and (_G.lastWProc[enemy.networkID]==nil or _G.lastWProc[enemy.networkID]+3<Game.Timer()) then
-						extraRange = extraRange + 425
-					end
-				end
+			if Data.ExtraAttackRange then
+				extraRange = extraRange + Data.ExtraAttackRange(enemy)
 			end
 			if Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(enemy) then
 				table_insert(enemiesaa, enemy)
@@ -5263,11 +5277,10 @@ do
 			end
 			
 			if not b and a.pos then
-				Cursor:Add(key, a)
+				return Cursor:Add(key, a)
 			else
-				Cursor:Add(key, pos)
+				return Cursor:Add(key, pos)
 			end
-			return true
 		end
 		if not a then
 			CastKey(key)
@@ -5291,6 +5304,10 @@ do
 		if pos then
 			Cursor:Add(MOUSEEVENTF_RIGHTDOWN, pos)
 		elseif not a then
+			local unit = Game.GetUnderMouseObject()
+			if unit and unit.isEnemy and unit.isTargetable then
+				return false
+			end
 			if myHero.pathing.hasMovePath and GetDistance(mousePos, myHero.pathing.endPos) < Menu.Main.Humanizer:Value() then
 				return false
 			end
@@ -5323,9 +5340,12 @@ Cursor = {
 			self.IsTarget = self.CastPos.pos ~= nil
 			self.correctedCastPos = self.CastPos
 			self.IsMouseClick = key == MOUSEEVENTF_RIGHTDOWN
-			self.Timer = GetTickCount() + MenuDelay:Value()
 			self:StepSetToCastPos()
-			return self:StepPressKey()
+			local issued = self:StepPressKey()
+			if issued then
+				self.Timer = GetTickCount() + MenuDelay:Value()
+			end
+			return issued
 		end
 		return false
 	end,
@@ -5432,6 +5452,10 @@ Cursor = {
 	end,
 }
 
+-- Track Crescendum's outgoing and returning missile because the next attack is ready only after the chakram returns.
+local CRESCENDUM_MISSILE_OUT = "ApheliosCrescendumAttackMisOut"
+local CRESCENDUM_MISSILE_IN = "ApheliosCrescendumAttackMisIn"
+
 Attack = {
 
 	TestDamage = false,
@@ -5441,7 +5465,9 @@ Attack = {
 	SpecialWindup = Data.SpecialWindup[myHero.charName],
 	IsJhin = myHero.charName == "Jhin",
 	IsAphelios = myHero.charName == "Aphelios",
+	IsCaitlyn = myHero.charName == "Caitlyn",
 	BaseAttackSpeed = Data.HeroData and Data.HeroData[3] or 0.625,
+	AttackSpeedRatio = Data.HeroData and (Data.HeroData[4] or Data.HeroData[3]) or 0.625,
 	BaseWindupTime = nil,
 	Reset = false,
 	ServerStart = 0,
@@ -5450,6 +5476,89 @@ Attack = {
 	AttackWindup = 0,
 	AttackAnimation = 0,
 	IsSenna = myHero.charName == "Senna",
+	CrescendumMissilePhase = nil,
+	CrescendumMissileID = nil,
+	CrescendumSearchStart = 0,
+	CrescendumSearchUntil = 0,
+
+	ClearCrescendumMissile = function(self)
+		self.CrescendumMissilePhase = nil
+		self.CrescendumMissileID = nil
+		self.CrescendumSearchStart = 0
+		self.CrescendumSearchUntil = 0
+	end,
+
+	FindCrescendumMissile = function(self, includeOutgoing)
+		for i = GameMissileCount(), 1, -1 do
+			local missile = GameMissile(i)
+			local data = missile and missile.missileData
+			if data and data.owner == myHero.handle then
+				if data.name == CRESCENDUM_MISSILE_IN then
+					return missile.networkID, "in"
+				elseif includeOutgoing and data.name == CRESCENDUM_MISSILE_OUT then
+					return missile.networkID, "out"
+				end
+			end
+		end
+		return nil, nil
+	end,
+
+	StartCrescendumMissile = function(self)
+		local now = GameTimer()
+		self.CrescendumMissilePhase = "find_out"
+		self.CrescendumMissileID = nil
+		self.CrescendumSearchStart = math_max(now, self.CastEndTime - Data:GetLatency() - 0.05)
+		self.CrescendumSearchUntil = self.CrescendumSearchStart + 0.4
+	end,
+
+	UpdateCrescendumMissile = function(self)
+		if not self.IsAphelios or not self.CrescendumMissilePhase then
+			return
+		end
+		if myHero.dead then
+			self:ClearCrescendumMissile()
+			return
+		end
+
+		local now = GameTimer()
+		local phase = self.CrescendumMissilePhase
+		if phase == "out" or phase == "in" then
+			local missile = self.CrescendumMissileID and GameGetObjectByNetID(self.CrescendumMissileID)
+			local data = missile and missile.missileData
+			local expectedName = phase == "out" and CRESCENDUM_MISSILE_OUT or CRESCENDUM_MISSILE_IN
+			if data and data.owner == myHero.handle and data.name == expectedName then
+				return
+			end
+
+			self.CrescendumMissileID = nil
+			if phase == "in" then
+				self:ClearCrescendumMissile()
+				self.Reset = true
+				return
+			end
+
+			self.CrescendumMissilePhase = "find_in"
+			self.CrescendumSearchStart = now
+			self.CrescendumSearchUntil = now + 0.6
+			phase = "find_in"
+		end
+
+		if now < self.CrescendumSearchStart then
+			return
+		end
+		self.CrescendumSearchStart = now + 0.01
+
+		local missileID, missilePhase = self:FindCrescendumMissile(phase == "find_out")
+		if missileID then
+			self.CrescendumMissileID = missileID
+			self.CrescendumMissilePhase = missilePhase
+			return
+		end
+
+		if now >= self.CrescendumSearchUntil then
+			self:ClearCrescendumMissile()
+		end
+	end,
 
 	OnTick = function(self)
 		if Data:CanResetAttack() and Orbwalker.Menu.General.AttackResetting:Value() then
@@ -5472,6 +5581,21 @@ Attack = {
 			self.AttackWindup = spell.windup
 			self.ServerStart = self.CastEndTime - self.AttackWindup
 			self.AttackAnimation = spell.animation
+			if self.IsCaitlyn and spell.name == "CaitlynPassiveMissile" then
+				local target = Orbwalker.LastTarget
+				if
+					not target
+					or (spell.target ~= target.handle and spell.target ~= target.networkID)
+				then
+					target = GameGetObjectByNetID(spell.target)
+				end
+				Data:ConsumeCaitlynMark(target)
+			end
+			if self.IsAphelios then
+				if spell.name == "ApheliosCrescendumAttack" then
+					self:StartCrescendumMissile()
+				end
+			end
 			if self.TestDamage then
 				if self.TestCount == 0 then
 					self.TestStartTime = GameTimer()
@@ -5484,6 +5608,16 @@ Attack = {
 				end
 			end
 		end
+		self:UpdateCrescendumMissile()
+	end,
+
+	GetAttackSpeed = function(self)
+		if self.IsJhin then
+			-- Jhin's passive applies 3% level growth to base AS despite AS ratio 0.
+			local level = myHero.levelData.lvl - 1
+			return self.BaseAttackSpeed * (1 + 0.03 * level * (0.7025 + 0.0175 * level))
+		end
+		return self.BaseAttackSpeed + (myHero.attackSpeed - 1) * self.AttackSpeedRatio
 	end,
 
 	GetWindup = function(self)
@@ -5500,7 +5634,7 @@ Attack = {
 			end
 		end
 		if self.BaseWindupTime then
-			return math_max(self.AttackWindup, 1 / (myHero.attackSpeed * self.BaseAttackSpeed) / self.BaseWindupTime)
+			return math_max(self.AttackWindup, 1 / self:GetAttackSpeed() / self.BaseWindupTime)
 		end
 		local data = myHero.attackData
 		if data.animationTime > 0 and data.windUpTime > 0 then
@@ -5516,11 +5650,7 @@ Attack = {
 		if self.IsGraves then
 			return myHero.attackData.animationTime * 0.9
 		end
-		if self.IsAphelios and Buff:HasBuff(myHero, "ApheliosCrescendumManager") then
-		 return 1.1 / (myHero.attackSpeed * self.BaseAttackSpeed)
-		end
-
-		return 1 / (myHero.attackSpeed * self.BaseAttackSpeed)
+		return 1 / self:GetAttackSpeed()
 	end,
 
 	GetProjectileSpeed = function(self)
@@ -5541,6 +5671,9 @@ Attack = {
 	end,
 
 	IsReady = function(self)
+		if self.IsAphelios and self.CrescendumMissilePhase then
+			return false
+		end
 		if myHero.charName=="Sion" and myHero.attackData.state==STATE_ATTACK then
 			return true
 		end
@@ -5902,12 +6035,13 @@ Orbwalker = {
 					end
 					if args.Target then
 						local targetpos = args.Target.pos
-						local attackRangeCheck = Data:IsInAutoAttackRange(
-							myHero,
-							args.Target,
-							-self.Menu.General.AttackRange:Value()
-						) or (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(args.Target))
-						if targetpos and targetpos:ToScreen().onScreen and attackRangeCheck then
+						if targetpos and targetpos:ToScreen().onScreen then
+							if
+								not Data:IsInAutoAttackRange(myHero, args.Target)
+								and not (Object.IsAzir and ChampionInfo:IsInAzirSoldierRange(args.Target))
+							then
+								return false
+							end
 							self.LastTarget = args.Target
 							if not Control.Attack(args.Target) then
 								return false
