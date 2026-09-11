@@ -1,4 +1,4 @@
-local __version__ = 3.075
+local __version__ = 3.076
 local __name__ = "GGOrbwalker"
 
 if _G.GGUpdate then
@@ -1605,7 +1605,11 @@ Damage = {
 		["Yunara"] = function(args)
 			local level = args.From:GetSpellData(_Q).level
 			if level > 0 then
-				args.RawMagical = args.RawMagical +  5 * level + 0.2 * args.From.ap
+				local qDamage = 5 * level + 0.2 * args.From.ap
+				args.RawMagical = args.RawMagical + qDamage
+				if Buff:HasBuff(args.From, "yunaraq") then
+					args.RawMagical = args.RawMagical + qDamage
+				end
 			end
 			if args.From.critChance >= 1 then
 				args.RawMagical = args.RawMagical
@@ -1690,8 +1694,12 @@ Damage = {
 			end
 		end,
 		["Kassadin"] = function(args)
-			if Game.CanUseSpell(1)==8 then
-				args.RawMagical = args.RawMagical+ (25 + 25 * args.From:GetSpellData(_W).level) +0.8 * args.From.ap
+			local wLevel = args.From:GetSpellData(_W).level
+			if wLevel > 0 then
+				args.RawMagical = 25 + 0.1 * args.From.ap
+				if Buff:HasBuff(args.From, "NetherBlade") then
+					args.RawMagical = (25 + 25 * wLevel) + 0.8 * args.From.ap
+				end
 			end
 		end,
 		["Graves"] = function(args)
@@ -1740,17 +1748,17 @@ Damage = {
 		end,
 		["TwistedFate"] = function(args)
 			if Buff:HasBuff(args.From, "cardmasterstackparticle") then
-				args.RawMagical = args.RawMagical + 40 + 25 * args.From:GetSpellData(_E).level + 0.75 * args.From.bonusDamage + 0.5 * args.From.ap
+				args.RawMagical = args.RawMagical + 40 + 25 * args.From:GetSpellData(_E).level + 0.2 * args.From.bonusDamage + 0.4 * args.From.ap
 			end
 			if Buff:HasBuff(args.From, "BlueCardPreAttack") then
 				args.DamageType = DAMAGE_TYPE_MAGICAL
-				args.RawMagical = args.RawMagical + (20 + 20 * args.From:GetSpellData(_W).level + args.From.totalDamage + 1.15 * args.From.ap) * (1 + 0.575 * args.From.critChance)
+				args.RawMagical = args.RawMagical + (20 + 20 * args.From:GetSpellData(_W).level + 1.0 * args.From.ap) * (1 + 0.575 * args.From.critChance)
 			elseif Buff:HasBuff(args.From, "RedCardPreAttack") then
 				args.DamageType = DAMAGE_TYPE_MAGICAL
-				args.RawMagical = args.RawMagical + (15 + 15 * args.From:GetSpellData(_W).level + args.From.totalDamage + 0.7 * args.From.ap) * (1 + 0.35 * args.From.critChance)
+				args.RawMagical = args.RawMagical + (15 + 15 * args.From:GetSpellData(_W).level + 0.7 * args.From.ap) * (1 + 0.35 * args.From.critChance)
 			elseif Buff:HasBuff(args.From, "GoldCardPreAttack") then
 				args.DamageType = DAMAGE_TYPE_MAGICAL
-				args.RawMagical = args.RawMagical + (7.5 + 7.5 * args.From:GetSpellData(_W).level + args.From.totalDamage + 0.5 * args.From.ap) * (1 + 0.25 * args.From.critChance)
+				args.RawMagical = args.RawMagical + (7.5 + 7.5 * args.From:GetSpellData(_W).level + 0.5 * args.From.ap) * (1 + 0.25 * args.From.critChance)
 			end
 		end,
 		["Varus"] = function(args)
@@ -1799,7 +1807,7 @@ Damage = {
 			args.RawMagical = args.RawMagical + 30
 		end,
 		[3302] = function(args) -- Terminus
-			args.RawMagical = args.RawMagical + 30
+			args.RawMagical = args.RawMagical + 30 + 0.1 * args.From.bonusDamage + 0.1 * args.From.ap
 		end,
 		[3087] = function(args) -- Statikk Shiv
 			if Buff:GetBuffStacks(args.From, "itemstatikshankcharge") == 100 then
@@ -1849,7 +1857,7 @@ Damage = {
 		end,
 		[2510] = function(args) -- Dusk and Dawn
 			if Buff:HasBuff(args.From, "2510_sheenhands") then
-				args.RawPhysical = args.RawPhysical + 0.75 * args.From.baseDamage + 0.1 * args.From.ap
+				args.RawMagical = args.RawMagical + 0.75 * args.From.baseDamage + 0.1 * args.From.ap
 			end
 		end,
 	},
@@ -1865,7 +1873,7 @@ Damage = {
 			args.RawTotal = args.RawTotal * 0
 			args.RawPhysical = args.RawTotal
 			local level = args.From.levelData.lvl
-			if Buff:HasBuff(myHero, "zeriqpassiveready") then
+			if Buff:HasBuff(args.From, "zeriqpassiveready") then
 				local percentDamage = (1 + (10 / 17) * (level - 1)) / 100 * args.Target.maxHealth
 				if args.Target.team == 300 then
 					percentDamage = math_min(300, percentDamage)
@@ -1934,7 +1942,7 @@ Damage = {
 			end
 		end,
 		["Teemo"] = function(args)
-			local Edata = myHero:GetSpellData(_E)
+			local Edata = args.From:GetSpellData(_E)
 			if Edata.level > 0 then
 				args.RawMagical = Edata.level * 10 + 0.30 * args.From.ap
 			end
@@ -2498,7 +2506,7 @@ Data = {
 		end,
 	},
 
-	--26.17
+	--26.18
 	-- priority, melee, base attack speed, optional attack speed ratio
 	HEROES = {
 		Aatrox = { 3, true, 0.651 },
@@ -2514,7 +2522,7 @@ Data = {
 		Ashe = { 5, false, 0.658 },
 		AurelionSol = { 4, false, 0.625 },
 		Aurora = { 4, false, 0.668 },
-		Azir = { 4, true, 0.625, 0.694 },
+		Azir = { 4, false, 0.625, 0.694 },
 		Bard = { 3, false, 0.658 },
 		Belveth = { 4, true, 0.67 },
 		Blitzcrank = { 1, true, 0.625 },
@@ -2549,7 +2557,7 @@ Data = {
 		Hwei = { 4, false, 0.69, 0.658 },
 		Illaoi = { 3, true, 0.625 },
 		Irelia = { 3, true, 0.656 },
-		Ivern = { 1, true, 0.644 },
+		Ivern = { 1, false, 0.644 },
 		Janna = { 2, false, 0.625 },
 		JarvanIV = { 3, true, 0.658 },
 		Jax = { 3, true, 0.638 },
@@ -2573,7 +2581,7 @@ Data = {
 		Leblanc = { 4, false, 0.658, 0.625 },
 		LeeSin = { 3, true, 0.651 },
 		Leona = { 1, true, 0.625 },
-		Lillia = { 4, false, 0.625 },
+		Lillia = { 4, true, 0.625 },
 		Lissandra = { 4, false, 0.656, 0.625 },
 		Locke = { 4, true, 0.688, 0.625 },
 		Lucian = { 5, false, 0.638 },
@@ -2639,14 +2647,14 @@ Data = {
 		Talon = { 4, true, 0.625 },
 		Taric = { 1, true, 0.625 },
 		Teemo = { 4, false, 0.69 },
-		Thresh = { 1, true, 0.625 },
+		Thresh = { 1, false, 0.625 },
 		Tristana = { 5, false, 0.656, 0.694 },
 		Trundle = { 2, true, 0.67 },
 		Tryndamere = { 4, true, 0.67, 0.725 },
 		TwistedFate = { 4, false, 0.625, 0.651 },
 		Twitch = { 5, false, 0.679 },
 		Udyr = { 2, true, 0.65 },
-		Urgot = { 2, true, 0.625 },
+		Urgot = { 2, false, 0.625 },
 		Varus = { 5, false, 0.658 },
 		Vayne = { 5, false, 0.658, 0.67 },
 		Veigar = { 4, false, 0.625 },
@@ -2690,6 +2698,8 @@ Data = {
 		Jade_Evelynn = { 4, true, 0.625 },
 		Jade_Ezreal = { 5, false, 0.658 },
 		Jade_Fiddlesticks = { 3, false, 0.625 },
+		Jade_Fiora = { 3, true, 0.672 },
+		Jade_Galio = { 1, true, 0.638 },
 		Jade_Gangplank = { 4, true, 0.651 },
 		Jade_Garen = { 1, true, 0.625 },
 		Jade_Gragas = { 2, true, 0.651 },
@@ -2717,10 +2727,12 @@ Data = {
 		Jade_Nunu = { 2, true, 0.625 },
 		Jade_Olaf = { 2, true, 0.694 },
 		Jade_Pantheon = { 3, true, 0.679 },
+		Jade_Poppy = { 2, true, 0.638 },
 		Jade_Rammus = { 1, true, 0.625 },
 		Jade_Ryze = { 4, false, 0.625 },
 		Jade_Shaco = { 4, true, 0.694 },
 		Jade_Shen = { 1, true, 0.651 },
+		Jade_Shyvana = { 2, true, 0.658 },
 		Jade_Singed = { 1, true, 0.613 },
 		Jade_Sion = { 1, true, 0.625 },
 		Jade_Sivir = { 5, false, 0.679 },
@@ -2737,6 +2749,7 @@ Data = {
 		Jade_Veigar = { 4, false, 0.625 },
 		Jade_Warwick = { 2, true, 0.644 },
 		Jade_Wukong = { 3, true, 0.658 },
+		Jade_XinZhao = { 3, true, 0.672 },
 		Jade_Zilean = { 3, false, 0.625 },
 	},
 
@@ -2778,6 +2791,9 @@ Data = {
 		["XinZhaoQThrust1"] = true,
 		["XinZhaoQThrust2"] = true,
 		["XinZhaoQThrust3"] = true,
+		["Jade_XinZhaoQ_Thrust"] = true,
+		["Jade_XinZhaoQ_Thrust2"] = true,
+		["Jade_XinZhaoQ_Thrust3"] = true,
 		["MasterYiDoubleStrike"] = true,
 		["Jade_MasterYiDoubleStrike"] = true,
 	},
@@ -2874,6 +2890,7 @@ Data = {
 		["Ekko"] = { { Slot = _E, Key = HK_E, Buff = { ["ekkoeattackbuff"] = true }, CanCancel = true } },
 		["Elise"] = { { Slot = _W, Key = HK_W, Name = "EliseSpiderW" } },
 		["Fiora"] = { { Slot = _E, Key = HK_E } },
+		["Jade_Fiora"] = { { Slot = _E, Key = HK_E } },
 		["Fizz"] = { { Slot = _W, Key = HK_W } },
 		["Garen"] = { { Slot = _Q, Key = HK_Q } },
 		["Graves"] = { { Slot = _E, Key = HK_E, OnCast = true, CanCancel = true } },
@@ -2903,6 +2920,7 @@ Data = {
 		["Sejuani"] = { { Slot = _E, Key = HK_E, ActiveCheck = true, SpellName = "SejuaniE2" } },
 		["Sett"] = {{ Slot = _Q, Key = HK_Q } },
 		["Shyvana"] = {{ Slot = _Q, Key = HK_Q } },
+		["Jade_Shyvana"] = {{ Slot = _Q, Key = HK_Q } },
 		["Sivir"] = { { Slot = _W, Key = HK_W } },
 		["Talon"] = { { Slot = _Q, Key = HK_Q, OnCast = true, CanCancel = true } },
 		["Trundle"] = { { Slot = _Q, Key = HK_Q } },
@@ -2917,6 +2935,7 @@ Data = {
 		["Volibear"] = { { Slot = _Q, Key = HK_Q } },
 		["MonkeyKing"] = { { Slot = _Q, Key = HK_Q } },
 		["XinZhao"] = { { Slot = _Q, Key = HK_Q } },
+		["Jade_XinZhao"] = { { Slot = _Q, Key = HK_Q } },
 		["Yorick"] = { { Slot = _Q, Key = HK_Q, Name = "YorickQ" } },
 		["Yunara"] = {
 			{ Slot = _Q, Key = HK_Q },
@@ -4564,8 +4583,6 @@ Health = {
 	Spells = {},
 	LastHitHandle = 0,
 	LaneClearHandle = 0,
-	LastHitHandleExpire = 0,
-	LaneClearHandleExpire = 0,
 
 	AddSpell = function(self, class)
 		table_insert(self.Spells, class)
@@ -4573,9 +4590,6 @@ Health = {
 
 	OnTick = function(self)
 		local attackRange, structures, pos, speed, windup, time, anim
-		local healthTimer = GameTimer()
-		if healthTimer >= self.LastHitHandleExpire then self.LastHitHandle = 0 end
-		if healthTimer >= self.LaneClearHandleExpire then self.LaneClearHandle = 0 end
 		-- RESET ALL
 		if self.ShouldRemoveObjects then
 			self.ShouldRemoveObjects = false
@@ -4731,7 +4745,7 @@ Health = {
 		pos = myHero.pos
 		speed = Attack:GetProjectileSpeed()
 		windup = Attack:GetWindup()
-		time = windup - self.ExtraFarmDelay:Value() * 0.001 --why is this -getlatency here? i isbjorn might try removing it -- - Data:GetLatency()
+		time = windup + Data:GetLatency() / 2 - self.ExtraFarmDelay:Value() * 0.001
 		anim = Attack:GetAnimation()
 		for i = 1, #self.EnemyMinionsInAttackRange do
 			local target = self.EnemyMinionsInAttackRange[i]
@@ -4967,7 +4981,7 @@ Health = {
 		elseif currentHealth ~= almostHealth then
 			almostAlmostHealth, turretAttacked = self:LocalGetPrediction(
 				target,
-				1.25 * anim + 1.25 * time + extraTime -- removed +0.5 just to test
+				1.25 * anim + 1.25 * time + 0.5 + extraTime
 			)
 			if almostAlmostHealth - damage < 0 then
 				almostalmost = true
@@ -5087,12 +5101,9 @@ Health = {
 					bestPriority = priority
 					min = predictedHP
 					result = unit
+					self.LastHitHandle = result.handle
 				end
 			end
-		end
-		if result then
-			self.LastHitHandle = result.handle
-			self.LastHitHandleExpire = GameTimer() + math_max(0.25, Attack:GetAnimation() + Data:GetLatency() + 0.1)
 		end
 		return result
 	end,
@@ -5194,7 +5205,6 @@ Health = {
 			local laneMinion = self:GetLaneMinion()
 			if laneMinion ~= nil then
 				self.LaneClearHandle = laneMinion.handle
-				self.LaneClearHandleExpire = GameTimer() + math_max(0.25, Attack:GetAnimation() + Data:GetLatency() + 0.1)
 				return laneMinion
 			end
 			-- ward
@@ -5304,10 +5314,10 @@ do
 		if pos then
 			Cursor:Add(MOUSEEVENTF_RIGHTDOWN, pos)
 		elseif not a then
-			local unit = Game.GetUnderMouseObject()
-			if unit and unit.isEnemy and unit.isTargetable then
-				return false
-			end
+			-- local unit = Game.GetUnderMouseObject()
+			-- if unit and unit.isEnemy and unit.isTargetable then
+			-- 	return false
+			-- end
 			if myHero.pathing.hasMovePath and GetDistance(mousePos, myHero.pathing.endPos) < Menu.Main.Humanizer:Value() then
 				return false
 			end
@@ -5583,13 +5593,9 @@ Attack = {
 			self.AttackAnimation = spell.animation
 			if self.IsCaitlyn and spell.name == "CaitlynPassiveMissile" then
 				local target = Orbwalker.LastTarget
-				if
-					not target
-					or (spell.target ~= target.handle and spell.target ~= target.networkID)
-				then
-					target = GameGetObjectByNetID(spell.target)
+				if target and target.handle == spell.target then
+					Data:ConsumeCaitlynMark(target)
 				end
-				Data:ConsumeCaitlynMark(target)
 			end
 			if self.IsAphelios then
 				if spell.name == "ApheliosCrescendumAttack" then
@@ -6046,7 +6052,6 @@ Orbwalker = {
 							if not Control.Attack(args.Target) then
 								return false
 							end
-							Attack.Reset = false
 							Attack.LocalStart = GameTimer()
 							self.PostAttackBool = true
 							return true
@@ -6075,13 +6080,6 @@ Orbwalker = {
 					self.OnPostAttackTickCb[i](self.PostAttackTimer)
 				end
 			end
-			local mePos = myHero.pos
-			if IsInRange(mePos, mousePos, self.Menu.General.HoldRadius:Value()) then
-				-- if self.CanHoldPosition then
-				-- 	Control.Hold(self.HoldPositionButton:Key())
-				-- end
-				return
-			end
 			if GetTickCount() > Movement.MoveTimer then
 
 				local args = { Target = nil, Process = true }
@@ -6102,6 +6100,14 @@ Orbwalker = {
 						args.Target = args.Target.pos
 					end
 					Control.Move(args.Target)
+					return
+				end
+				local mePos = myHero.pos
+				-- Hold only blocks default movement; forced/targeted moves keep priority
+				if IsInRange(mePos, mousePos, self.Menu.General.HoldRadius:Value()) then
+					-- if self.CanHoldPosition then
+					-- 	Control.Hold(self.HoldPositionButton:Key())
+					-- end
 					return
 				end
 				-- local pos = IsInRange(mePos, mousePos, 100) and mePos:Extend(mousePos, 100) or nil
